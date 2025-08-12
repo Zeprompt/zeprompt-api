@@ -10,6 +10,16 @@ class AuthController {
       httpResponse.sendError(res, 500, "user", "registration", error);
     }
   }
+
+  async login(req, res) {
+    try {
+      const result = await authService.login(req.body);
+      httpResponse.sendSuccess(res, 200, "auth", "login", result);
+    } catch (error) {
+      const statusCode = error.statusCode || 500;
+      httpResponse.sendError(res, statusCode, "auth", "login", error.message);
+    }
+  }
 }
 
 module.exports = new AuthController();

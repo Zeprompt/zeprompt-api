@@ -3,12 +3,12 @@ require("dotenv").config();
 
 // Génération du token
 const generateToken = (user) => {
-  return (
-    jwt.sign({
+  return jwt.sign(
+    {
       id: user.id,
       username: user.username,
       role: user.role,
-    }),
+    },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || "1h" }
   );
