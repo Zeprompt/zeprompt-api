@@ -1,6 +1,6 @@
-# ZePrompt API
+#ZePrompt API
 
-## Présentation
+##Présentation
 
 API robuste pour la gestion des utilisateurs, la sécurité et l’envoi d’emails, conçue avec Express.js, Sequelize et Redis.
 
