@@ -1,4 +1,5 @@
 const fetch = require("node-fetch");
+const logger = require("../utils/logger");
 
 class EmailUtils {
   // Valeur par défaut
@@ -13,7 +14,7 @@ class EmailUtils {
     testMode = EmailUtils.DEFAULT_TEST_MODE
   ) {
     if (testMode || bypassVerification) {
-      console.log("✅ Vérification Mailzeet ignorée en mode test");
+      logger.info("✅ Vérification Mailzeet ignorée en mode test");
       return true;
     }
 
@@ -49,7 +50,7 @@ class EmailUtils {
       });
 
       if (response.ok) {
-        console.log("✅ Configuration Mailzeet vérifiée avec succès");
+        logger.info("✅ Configuration Mailzeet vérifiée avec succès");
         return true;
       } else {
         console.error(
@@ -73,10 +74,10 @@ class EmailUtils {
         : EmailUtils.DEFAULT_TEST_MODE;
 
     if (isTestMode) {
-      console.log("MODE TEST - Email non envoyé");
-      console.log(`À: ${to}`);
-      console.log(`Sujet: ${subject}`);
-      console.log("Contenu HTML:", htmlContent.substring(0, 100) + "...");
+      logger.info("MODE TEST - Email non envoyé");
+      logger.info(`À: ${to}`);
+      logger.info(`Sujet: ${subject}`);
+      logger.info("Contenu HTML:", htmlContent.substring(0, 100) + "...");
       return { success: true, messageId: "test-" + Date.now(), testMode: true };
     }
 
@@ -137,7 +138,7 @@ class EmailUtils {
         return { success: false, error: result };
       }
 
-      console.log(
+      logger.info(
         "✅ Email envoyé avec succès via Mailzeet :",
         result.data?.id
       );

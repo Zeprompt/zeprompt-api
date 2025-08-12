@@ -3,7 +3,16 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "prepare": "husky",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix"
+  },
+  "lint-staged": {
+    "**/*.{js,jsx,ts,tsx}": [
+      "node scripts/check-console-logs.js",
+      "eslint --fix"
+    ]
   },
   "author": "",
   "license": "ISC",
@@ -22,9 +31,15 @@
     "pg-hstore": "^2.3.4",
     "redis": "^5.8.0",
     "sequelize": "^6.37.7",
+    "winston": "^3.17.0",
     "zod": "^4.0.17"
   },
   "devDependencies": {
+    "@eslint/js": "^9.33.0",
+    "eslint": "^9.33.0",
+    "globals": "^16.3.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.5",
     "sequelize-cli": "^6.6.3"
   }
 }

@@ -1,13 +1,14 @@
 const { Worker } = require("bullmq");
 const redisConnection = require("../config/redis");
 const EmailUtils = require("../utils/emailUtils");
+const logger = require("../utils/logger");
 
 const emailWorker = new Worker(
   "emailQueue",
   async (job) => {
     const { to, subject, htmlContent, options } = job.data;
 
-    console.log("🚀 Email worker started");
+    logger.info("🚀 Email worker started");
 
     const result = await EmailUtils.sendEmail(
       to,
@@ -20,7 +21,7 @@ const emailWorker = new Worker(
       throw new Error(`Failed to send email to ${to}: ${result.error}`);
     }
 
-    console.log(`Email envoyé avec succès à ${to}`);
+    logger.info(`Email envoyé avec succès à ${to}`);
     return Promise.resolve();
   },
   {

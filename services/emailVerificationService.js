@@ -2,7 +2,6 @@ const crypto = require("crypto");
 const redisClient = require("../config/redis");
 const userService = require("../modules/users/user.service");
 const generateEmailVerificationTemplate = require("../templates/emailVerification");
-const EmailUtils = require("../utils/emailUtils");
 const emailQueue = require("../queues/emailQueue");
 
 class EmailVerificationService {
@@ -116,7 +115,6 @@ class EmailVerificationService {
 
       await userService.updateUser(user.id, { emailVerified: true });
 
-      console.log(`Email vérifié avec succès pour l'utilisateur ${user.email}`);
       return {
         success: true,
         message: "Email vérifié avec succès",

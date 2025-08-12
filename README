@@ -1,0 +1,89 @@
+# ZePrompt API
+
+## Présentation
+
+API robuste pour la gestion des utilisateurs, la sécurité et l’envoi d’emails, conçue avec Express.js, Sequelize et Redis.
+
+---
+
+## Installation
+
+### Prérequis
+
+* Node.js (version 22+ recommandée)
+* Redis (serveur local ou distant)
+* Base de données PostgreSQL
+* Git
+
+### Étapes
+
+1. Clonez le dépôt :
+
+```bash
+git clone https://github.com/Lordkode/zeprompt-api.git
+cd zeprompt-api
+```
+
+2. Installez les dépendances :
+
+```bash
+npm install
+```
+
+3. Configurez vos variables d’environnement :
+
+Créez un fichier `.env` à la racine et remplissez-le avec les variables nécessaires exemple dans `.env.example` :
+
+4. Lancez le serveur en mode développement :
+
+```bash
+npm run dev
+```
+
+Le serveur écoute alors sur `http://localhost:3000`.
+
+---
+
+## Workflow Git et gestion des branches
+
+Le projet utilise trois branches principales :
+
+* **main** : Contient la version stable finale, toujours une copie propre et stable.
+* **prod** : Version déployée en production, stable et testée.
+* **dev** : Branche de développement active. Tous les développeurs doivent créer leurs branches de fonctionnalités à partir de `dev`.
+
+### Processus de contribution
+
+1. Créez une branche pour votre fonctionnalité ou correctif à partir de `dev` :
+
+```bash
+git checkout dev
+git pull origin dev
+git checkout -b feature/ma-nouvelle-fonctionnalite
+```
+
+2. Effectuez vos modifications et commitez-les de façon claire et concise.
+
+3. Poussez votre branche sur GitHub :
+
+```bash
+git push -u origin feature/ma-nouvelle-fonctionnalite
+```
+
+4. Ouvrez une **Pull Request (PR)** vers la branche `dev` sur GitHub.
+
+5. Une fois la PR revue, testée et validée, elle sera fusionnée dans `dev`.
+
+6. Après validation complète sur `dev`, une fusion sera faite de `dev` vers `prod` pour le déploiement.
+
+7. Enfin, `main` est mise à jour régulièrement pour contenir la version stable finale.
+
+---
+
+## Contribuer
+
+* Merci de respecter les bonnes pratiques de code et le style existant.
+* Assurez-vous que votre code est bien testé.
+* N’hésitez pas à commenter et documenter vos ajouts.
+* Toute contribution passe par une Pull Request vers la branche `dev`.
+* Avant de pousser vos modifications, récupérez les dernières mises à jour de `dev`.

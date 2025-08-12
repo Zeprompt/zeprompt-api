@@ -1,6 +1,5 @@
-const httpResponse = require("../../utils/httpResponse");
 const userService = require("../users/user.service");
-const { hashPassword, comparePassword } = require("../../utils/passwordUtils");
+const { hashPassword } = require("../../utils/passwordUtils");
 const EmailVerificationService = require("../../services/emailVerificationService");
 
 class AuthService {

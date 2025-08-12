@@ -6,6 +6,7 @@ const { sequelize } = require("./models");
 const redisClient = require("./config/redis");
 require("./workers/emailWorker");
 const authRoutes = require("./modules/auth/auth.routes");
+const logger = require("./utils/logger");
 
 app.use(express.json())
 app.use("/api/auth", authRoutes);
@@ -18,7 +19,7 @@ app.get("/", (req, res) => {
 (async () => {
   try {
     redisClient.on("connect", () => {
-        console.log("✅ Connexion Redis réussie");
+        logger.info("✅ Connexion Redis réussie");
     })
 
     redisClient.on("error", (error) => {
@@ -33,12 +34,12 @@ app.get("/", (req, res) => {
 (async () => {
   try {
     await sequelize.authenticate();
-    console.log("✅ Connexion DB réussie");
+    logger.info("✅ Connexion DB réussie");
   } catch (error) {
     console.error("❌ Erreur connexion DB:", error);
   }
 })();
 
 app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`);
+  logger.info(`Example app listening at http://localhost:${port}`);
 });
