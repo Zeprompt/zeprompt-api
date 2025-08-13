@@ -10,12 +10,10 @@ const emailWorker = new Worker(
 
     logger.info("🚀 Email worker started");
 
-    const result = await EmailUtils.sendEmail(
-      to,
-      subject,
-      htmlContent,
-      options
-    );
+    const result = await EmailUtils.sendEmail(to, subject, htmlContent, {
+      ...options,
+      testMode: false,
+    });
 
     if (!result.success) {
       throw new Error(`Failed to send email to ${to}: ${result.error}`);
