@@ -17,5 +17,14 @@ router.get("/verify-email", (req, res) => {
 router.post("/resend-verification-email", (req, res) => {
   authController.resendVerificationEmail(req, res);
 });
+router.post("/request-password-reset", (req, res) => {
+  authController.requestPasswordReset(req, res);
+});
+router.get("/verify-password-reset-token", (req, res) => {
+  authController.verifyPasswordResetToken(req, res);
+});
+router.post("/reset-password", (req, res) => {
+  authController.resetPassword(req, res);
+});
 
 module.exports = router;
