@@ -11,5 +11,11 @@ router.post("/register", validate(registerSchema), (req, res) =>
 router.post("/login", validate(loginSchema), (req, res) => {
   authController.login(req, res);
 });
+router.get("/verify-email", (req, res) => {
+  authController.verifyEmail(req, res);
+});
+router.post("/resend-verification-email", (req, res) => {
+  authController.resendVerificationEmail(req, res);
+});
 
 module.exports = router;
