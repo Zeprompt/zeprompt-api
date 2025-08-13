@@ -90,6 +90,69 @@ class AuthController {
       );
     }
   }
+
+  async requestPasswordReset(req, res) {
+    try {
+      const { email } = req.body;
+      const result = await authService.requestPasswordReset(email);
+      httpResponse.sendSuccess(
+        res,
+        200,
+        "auth",
+        "requestPasswordReset",
+        result
+      );
+    } catch (error) {
+      const statusCode = error.statusCode || 500;
+      httpResponse.sendError(
+        res,
+        statusCode,
+        "auth",
+        "requestPasswordReset",
+        error.message
+      );
+    }
+  }
+
+  async verifyPasswordResetToken(req, res) {
+    try {
+      const { token, email } = req.query;
+      const result = await authService.verifyPasswordResetToken(token, email);
+      httpResponse.sendSuccess(
+        res,
+        200,
+        "auth",
+        "verificationPasswordResetToken",
+        result
+      );
+    } catch (error) {
+      const statusCode = error.statusCode || 500;
+      httpResponse.sendError(
+        res,
+        statusCode,
+        "auth",
+        "verifyPasswordResetToken",
+        error.message
+      );
+    }
+  }
+
+  async resetPassword(req, res) {
+    try {
+      const { token, email, newPassword } = req.body;
+      const result = await authService.resetPassword(token, email, newPassword);
+      httpResponse.sendSuccess(res, 200, "auth", "resetPassword", result);
+    } catch (error) {
+      const statusCode = error.statusCode || 500;
+      httpResponse.sendError(
+        res,
+        statusCode,
+        "auth",
+        "resetPassword",
+        error.message
+      );
+    }
+  }
 }
 
 module.exports = new AuthController();
