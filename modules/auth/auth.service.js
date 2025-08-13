@@ -7,6 +7,7 @@ const emailQueue = require("../../queues/emailQueue");
 const generateResetPasswordEmailTemplate = require("../../templates/resentPasswordEmail");
 
 class AuthService {
+  // Inscription
   async register(data) {
     const { email, username, password } = data;
 
@@ -35,6 +36,7 @@ class AuthService {
     };
   }
 
+  // Connexion
   async login(data) {
     const { email, password } = data;
 
@@ -44,6 +46,9 @@ class AuthService {
       err.statusCode = 404;
       throw err;
     }
+
+    // Vérifie status du compte
+    await this.checkUserStatus(user);
 
     if (!user.emailVerified) {
       const err = new Error("Email non vérifié");
@@ -58,7 +63,7 @@ class AuthService {
       throw err;
     }
 
-    const token = await generateToken(user);
+    const token = generateToken(user);
 
     return {
       user: {
@@ -71,6 +76,7 @@ class AuthService {
     };
   }
 
+  // Vérifier le token qui a été envoyé par email
   async verifyEmail(token, email) {
     if (!token || !email) {
       const err = new Error("Token et email requis");
@@ -96,6 +102,7 @@ class AuthService {
     };
   }
 
+  // Renvoyer un mail de confirmation
   async resendVerificationEmail(email) {
     const user = await userService.getUserByEmail(email);
     if (!user) {
@@ -124,6 +131,7 @@ class AuthService {
     };
   }
 
+  // Demander le changement d'un mot de passe
   async requestPasswordReset(email) {
     const user = await userService.getUserByEmail(email);
     if (!user) {
@@ -134,7 +142,7 @@ class AuthService {
 
     const resetToken = EmailVerificationService.generateVerificationToken();
     const redisKey = `password_reset:${user.email}`;
-    await redisClient.set(redisKey, resetToken, "EX", 3000); // expire en 1h
+    await redisClient.set(redisKey, resetToken, "EX", 3600); // expire en 1h
 
     const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
     const resetUrl = `${baseUrl}/api/auth/verify-password-reset-token?token=${resetToken}&email=${encodeURIComponent(
@@ -167,6 +175,7 @@ class AuthService {
     return { message: "Email de réinitialisation envoyé." };
   }
 
+  // Vérifier le token envoyé par email
   async verifyPasswordResetToken(token, email) {
     const redisKey = `password_reset:${email}`;
     const storedToken = await redisClient.get(redisKey);
@@ -180,6 +189,7 @@ class AuthService {
     return { valid: true, email };
   }
 
+  // Changer le mot de passe d'un compte
   async resetPassword(token, email, newPassword) {
     await this.verifyPasswordResetToken(token, email);
 
@@ -193,6 +203,68 @@ class AuthService {
 
     await userService.updateUser(user.id, { password: hashedPassword });
     await redisClient.del(`password_reset:${email}`);
+
+    return {
+      succes: true,
+      message: "Mot de passe mis à jour avec succès.",
+    };
+  }
+
+  // Désactiver un compte
+  async disableUser(userId) {
+    const user = await userService.updateUser(userId, { active: false });
+    return {
+      message: "Compte désactivé avec succès",
+      user,
+    };
+  }
+
+  // Réactiver un compte
+  async enableUser(userId) {
+    const user = await userService.updateUser(userId, { active: true });
+    return {
+      message: "Compte réactivé avec succès",
+      user,
+    };
+  }
+
+  // Soft delete (marqer comme supprimé)
+  async softDeleteUser(userId) {
+    const user = await userService.updateUser(userId, {
+      deletedAt: new Date(),
+    });
+    return {
+      message: "Compte supprimé (soft delete)",
+      user,
+    };
+  }
+
+  // Restaurer un compte supprimé
+  async restoreUser(userId) {
+    const user = await userService.updateUser(userId, { deletedAt: null });
+    return {
+      message: "Compte restauré",
+      user,
+    };
+  }
+
+  // Vérifier avant connexion
+  async checkUserStatus(user) {
+    if (!user.active) {
+      const err = new Error(
+        "Votre compte est désactivé. Contactez l'administration."
+      );
+      err.statusCode = 403;
+      throw err;
+    }
+
+    if (user.deletedAt) {
+      const err = new Error("Ce compte a été supprimé.");
+      err.statusCode = 403;
+      throw err;
+    }
+
+    return true;
   }
 }
 

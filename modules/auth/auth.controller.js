@@ -153,6 +153,56 @@ class AuthController {
       );
     }
   }
+
+  async disableUser(req, res) {
+    try {
+      const { userId } = req.params;
+      const result = await authService.disableUser(userId);
+      httpResponse.sendSuccess(res, 200, "user", "disable", result);
+    } catch (error) {
+      const statusCode = error.statusCode || 500;
+      httpResponse.sendError(res, statusCode, "user", "disable", error.message);
+    }
+  }
+
+  async enableUser(req, res) {
+    try {
+      const { userId } = req.params;
+      const result = await authService.enableUser(userId);
+      httpResponse.sendSuccess(res, 200, "user", "enable", result);
+    } catch (error) {
+      const statusCode = error.statusCode || 500;
+      httpResponse.sendError(res, statusCode, "user", "enable", error.message);
+    }
+  }
+
+  async softDeleteUser(req, res) {
+    try {
+      const { userId } = req.params;
+      const result = await authService.softDeleteUser(userId);
+      httpResponse.sendSuccess(res, 200, "user", "softDelete", result);
+    } catch (error) {
+      const statusCode = error.statusCode || 500;
+      httpResponse.sendError(
+        res,
+        statusCode,
+        "user",
+        "softDelete",
+        error.message
+      );
+    }
+  }
+
+  async restoreUser(req, res) {
+    try {
+      const { userId } = req.params;
+      const result = await authService.restoreUser(userId);
+      httpResponse.sendSuccess(res, 200, "user", "restore", result);
+    } catch (error) {
+      const statusCode = error.statusCode || 500;
+      httpResponse.sendError(res, statusCode, "user", "restore", error.message);
+    }
+  }
 }
 
 module.exports = new AuthController();
