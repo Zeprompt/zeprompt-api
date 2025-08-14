@@ -33,6 +33,27 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.TEXT,
         allowNull: false,
       },
+      contentType: {
+        type: DataTypes.ENUM('text', 'pdf'),
+        allowNull: false,
+        defaultValue: 'text',
+        field: 'content_type',
+      },
+      pdfFilePath: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: 'pdf_file_path',
+      },
+      pdfFileSize: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        field: 'pdf_file_size',
+      },
+      pdfOriginalName: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: 'pdf_original_name',
+      },
   imageUrl: {
         type: DataTypes.STRING,
         allowNull: true,
