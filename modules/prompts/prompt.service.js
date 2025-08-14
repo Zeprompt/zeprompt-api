@@ -1,6 +1,5 @@
 const promptRepository = require('./prompt.repository');
-const { generatePromptId } = require('../../utils/idGenerator');
-const { Prompt, Tag } = require('../../models');
+const { Tag } = require('../../models');
 
 class PromptService {
   async listPublic(query) {
@@ -24,9 +23,7 @@ class PromptService {
   }
 
   async create(userId, data) {
-    const id = await generatePromptId(Prompt);
-    const created = await promptRepository.create(userId, { id, ...data });
-    return created;
+  return promptRepository.create(userId, data);
   }
 
   async deleteOwned(id, userId) {

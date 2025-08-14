@@ -168,7 +168,7 @@ const path = require('path');
  *                 type: string
  *               tags:
  *                 type: string
- *                 description: JSON array de strings, ex: ["ai","seo"]
+ *                 description: 'JSON array de strings, ex: ["ai","seo"]'
  *               isPublic:
  *                 type: string
  *                 enum: ["true","false"]
