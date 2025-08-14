@@ -10,6 +10,7 @@ const setupHelmet = require("./config/helmet");
 const setupRateLimit = require("./config/rateLimit");
 const authRoutes = require("./modules/auth/auth.routes");
 const tagRoutes = require("./modules/tags/tag.routes");
+const promptRoutes = require("./modules/prompts/prompt.routes");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
 
@@ -25,6 +26,7 @@ setupRateLimit(app);
 // Différentes routes
 app.use("/api/auth", authRoutes);
 app.use("/api/tags", tagRoutes);
+app.use("/api/prompts", promptRoutes);
 // Swagger UI
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
 
