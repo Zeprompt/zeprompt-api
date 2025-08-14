@@ -31,7 +31,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       content: {
         type: DataTypes.TEXT,
-        allowNull: false,
+  allowNull: true,
       },
       contentType: {
         type: DataTypes.ENUM('text', 'pdf'),
@@ -78,6 +78,22 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: 'Prompt',
       tableName: 'prompts',
+      validate: {
+        contentConsistency() {
+          // If content is text, it must be provided
+          if (this.contentType === 'text') {
+            if (!this.content || String(this.content).trim().length === 0) {
+              throw new Error('content is required when contentType is text');
+            }
+          }
+          // If content is pdf, a pdf file path must be provided
+          if (this.contentType === 'pdf') {
+            if (!this.pdfFilePath || String(this.pdfFilePath).trim().length === 0) {
+              throw new Error('pdfFilePath is required when contentType is pdf');
+            }
+          }
+        },
+      },
     }
   );
 
