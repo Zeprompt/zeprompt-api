@@ -9,6 +9,8 @@ const redisClient = require("./config/redis");
 const setupHelmet = require("./config/helmet");
 const setupRateLimit = require("./config/rateLimit");
 const authRoutes = require("./modules/auth/auth.routes");
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./config/swagger");
 
 // Définition des constantes
 const port = 3000;
@@ -21,6 +23,45 @@ setupRateLimit(app);
 
 // Différentes routes
 app.use("/api/auth", authRoutes);
+// Swagger UI
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
+
+/**
+ * @openapi
+ * /api/health:
+ *   get:
+ *     summary: Health check
+ *     tags:
+ *       - Health
+ *     responses:
+ *       200:
+ *         description: Service status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: ok
+ *                 uptime:
+ *                   type: number
+ *                   description: Process uptime in seconds
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                 version:
+ *                   type: string
+ */
+app.get("/api/health", (req, res) => {
+  const { version } = require("./package.json");
+  res.status(200).json({
+    status: "ok",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    version,
+  });
+});
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
