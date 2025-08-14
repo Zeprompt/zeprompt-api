@@ -8,6 +8,12 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       // Relation: un Prompt appartient à un User
       Prompt.belongsTo(models.User, { foreignKey: 'userId' });
+      // N:N avec Tag via table de jointure prompt_tags
+      Prompt.belongsToMany(models.Tag, {
+        through: 'prompt_tags',
+        foreignKey: 'prompt_id',
+        otherKey: 'tag_id',
+      });
     }
   }
 
@@ -27,11 +33,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.TEXT,
         allowNull: false,
       },
-      tags: {
-        type: DataTypes.ARRAY(DataTypes.STRING),
-        defaultValue: [],
-      },
-      imageUrl: {
+  imageUrl: {
         type: DataTypes.STRING,
         allowNull: true,
         field: 'image_url',
