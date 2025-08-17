@@ -1,4 +1,4 @@
-const { Prompt, User, Tag, Sequelize } = require('../../models');
+const { Prompt, User, Tag, Sequelize, sequelize } = require('../../models');
 
 class PromptRepository {
   async findAllPublic({ search, page, limit, sort, order, tags }) {
@@ -29,23 +29,12 @@ class PromptRepository {
       { model: User, attributes: ['id', 'username', 'email'] },
     ];
 
-    // If tags are provided, add an include with a WHERE clause on tag names (case-insensitive) and required join.
-    // Note: Included Tags in the result will reflect the filtered join; for full tag lists, a second alias would be needed.
-    const tagFilterInclude = tagNames.length > 0
-      ? [{
-          model: Tag,
-          through: { attributes: [] },
-          required: true,
-          where: Sequelize.where(
-            Sequelize.fn('LOWER', Sequelize.col('Tags.name')),
-            { [Sequelize.Op.in]: tagNames.map((n) => n.toLowerCase()) }
-          ),
-        }]
-      : [{ model: Tag, through: { attributes: [] } }];
+  // Always include Tags for output. We'll do filtering via a subquery in WHERE to avoid alias issues.
+  const tagInclude = [{ model: Tag, through: { attributes: [] } }];
 
     const findOptions = {
       where,
-      include: [...baseIncludes, ...tagFilterInclude],
+      include: [...baseIncludes, ...tagInclude],
       limit: pageSize,
       offset,
       order: orderBy,
@@ -53,8 +42,20 @@ class PromptRepository {
     };
 
     if (tagNames.length > 0) {
-      findOptions.group = ['Prompt.id', 'User.id'];
-      findOptions.having = Sequelize.literal(`COUNT(DISTINCT("Tags"."id")) = ${tagNames.length}`);
+      const normalized = tagNames.map((n) => n.toLowerCase());
+      const escapedList = normalized.map((n) => sequelize.escape(n)).join(', ');
+      const subQuery = `(
+        SELECT pt.prompt_id
+        FROM prompt_tags pt
+        JOIN tags t ON t.id = pt.tag_id
+        WHERE t.name IN (${escapedList})
+        GROUP BY pt.prompt_id
+        HAVING COUNT(DISTINCT t.id) = ${normalized.length}
+      )`;
+      findOptions.where = {
+        ...where,
+        [Sequelize.Op.and]: Sequelize.literal(`"Prompt"."id" IN ${subQuery}`),
+      };
     }
 
     const { count, rows } = await Prompt.findAndCountAll(findOptions);
@@ -109,6 +110,27 @@ class PromptRepository {
     if (!prompt) return null;
     if (prompt.userId !== userId) return 'forbidden';
     await prompt.destroy();
+    return prompt;
+  }
+
+  // Upsert tags and set associations for a prompt
+  async upsertTagsForPrompt(promptId, tagNames = []) {
+    const prompt = await Prompt.findByPk(promptId);
+    if (!prompt) return null;
+
+    if (!Array.isArray(tagNames) || tagNames.length === 0) {
+      await prompt.setTags([]);
+      return prompt;
+    }
+
+  const normalized = tagNames.map((t) => String(t).trim().toLowerCase()).filter(Boolean);
+    const tags = await Promise.all(
+      normalized.map(async (name) => {
+        const [tag] = await Tag.findOrCreate({ where: { name } });
+        return tag;
+      })
+    );
+    await prompt.setTags(tags);
     return prompt;
   }
 

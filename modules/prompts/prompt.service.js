@@ -1,5 +1,4 @@
 const promptRepository = require('./prompt.repository');
-const { Tag } = require('../../models');
 
 class PromptService {
   async listPublic(query) {
@@ -30,21 +29,9 @@ class PromptService {
     return promptRepository.deleteOwned(id, userId);
   }
 
-  // Helpers for tags association
   async setTags(promptInstance, tagNames = []) {
-    if (!Array.isArray(tagNames) || tagNames.length === 0) {
-      await promptInstance.setTags([]);
-      return [];
-    }
-    // Find or create tags by name
-    const tags = await Promise.all(
-      tagNames.map(async (name) => {
-        const [tag] = await Tag.findOrCreate({ where: { name } });
-        return tag;
-      })
-    );
-    await promptInstance.setTags(tags);
-    return tags;
+    await promptRepository.upsertTagsForPrompt(promptInstance.id, tagNames);
+    return promptInstance.getTags();
   }
 
   async listPopular(limit) {
