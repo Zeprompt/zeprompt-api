@@ -38,5 +38,11 @@ router.delete("/soft-delete/:userId", (req, res) => {
 router.put("/restore/:userId", (req, res) => {
   authController.restoreUser(req, res);
 });
+router.get("/users/me", (req, res) => {
+  authController.getProfile(req, res);
+});
+router.put("/users/me", (req, res) => {
+  authController.updateProfile(req, res);
+});
 
 module.exports = router;

@@ -1,47 +1,51 @@
 const { verifyToken } = require("../utils/jwt");
+const logger = require("../utils/logger");
 
-/**
- * Authentication middleware
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next function
- */
-const authenticate = (req, res, next) => {
-  // Check if being used properly as middleware
-  if (!req || !res || !next) {
-    console.error("Authentication middleware not used correctly");
-    throw new Error(
-      "Authentication middleware must be used as Express middleware"
-    );
+class AuthMiddleware {
+  static authenticate(req, res, next) {
+    try {
+      if (!req.headers || !req.headers.authorization) {
+        res.status(401).json({
+          error: "Authorization header manquant.",
+        });
+      }
+
+      const token = req.headers.authorization.split(" ")[1];
+      if (!token) {
+        return res.status(401).json({
+          error: "Token manquant.",
+        });
+      }
+
+      req.user = verifyToken(token);
+      next();
+    } catch (error) {
+      logger.error(`Erreur d'authentification : ${error.message}`);
+      res.status(401).json({
+        error: "Authentification echouée.",
+        details: error.message,
+      });
+    }
   }
 
-  try {
-    // Vérification de l'existence des headers
-    if (!req.headers) {
-      return res.status(401).json({ error: "Headers manquants" });
+  static isAdmin(req, res, next) {
+    if (!req.user) {
+      logger.error(
+        "Utilisateur non authentifié (cet admin essaie d'accéder à une route admin)"
+      );
+      return res.status(401).json({
+        error: "Utilisateur non authentifié.",
+      });
     }
 
-    // Extraction du token
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: "Authorization header manquant" });
+    if (req.user.role != "admin") {
+      logger.error(`${req.user.email} n'est pas un admin.`);
+      return res.status(403).json({
+        error: "Accès refusé : droits administrateur requis",
+      });
     }
-
-    const token = authHeader.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Token manquant" });
-    }
-
-    // Vérification du token
-    req.user = verifyToken(token);
     next();
-  } catch (error) {
-    console.error("Erreur d'authentification:", error);
-    res.status(401).json({
-      error: "Authentification échouée",
-      details: error.message,
-    });
   }
-};
+}
 
-module.exports = authenticate;
+module.exports = AuthMiddleware;
