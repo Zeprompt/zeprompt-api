@@ -66,7 +66,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  res.send("Hello World!");
+  res.send("Hello World! yeah");
 });
 
 // Redis connection
