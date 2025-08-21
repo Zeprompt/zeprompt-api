@@ -11,14 +11,14 @@ class EmailUtils {
 
   static async verifyMailzeetConfiguration(
     bypassVerification = false,
-    testMode = EmailUtils.DEFAULT_TEST_MODE
+    testMode = this.DEFAULT_TEST_MODE
   ) {
     if (testMode || bypassVerification) {
       logger.info("✅ Vérification Mailzeet ignorée en mode test");
       return true;
     }
 
-    if (!EmailUtils.API_KEY) {
+    if (!this.API_KEY) {
       console.error(
         "❌ Mailzeet API Key non définie dans les variables d'environnement"
       );
@@ -30,12 +30,12 @@ class EmailUtils {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${EmailUtils.API_KEY}`,
+          Authorization: `Bearer ${this.API_KEY}`,
         },
         body: JSON.stringify({
           sender: {
-            email: EmailUtils.FROM_EMAIL,
-            name: EmailUtils.FROM_NAME,
+            email: this.FROM_EMAIL,
+            name: this.FROM_NAME,
           },
           recipients: [
             {
@@ -71,7 +71,7 @@ class EmailUtils {
     const isTestMode =
       options.testMode !== undefined
         ? options.testMode
-        : EmailUtils.DEFAULT_TEST_MODE;
+        :this.DEFAULT_TEST_MODE;
 
     if (isTestMode) {
       logger.info("MODE TEST - Email non envoyé");
@@ -81,7 +81,7 @@ class EmailUtils {
       return { success: true, messageId: "test-" + Date.now(), testMode: true };
     }
 
-    const isConfigValid = await EmailUtils.verifyMailzeetConfiguration(
+    const isConfigValid = await this.verifyMailzeetConfiguration(
       options.bypassVerification,
       isTestMode
     );
@@ -97,8 +97,8 @@ class EmailUtils {
     try {
       const payload = {
         sender: {
-          email: EmailUtils.FROM_EMAIL,
-          name: EmailUtils.FROM_NAME,
+          email: this.FROM_EMAIL,
+          name: this.FROM_NAME,
         },
         recipients: [
           {
@@ -122,7 +122,7 @@ class EmailUtils {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${EmailUtils.API_KEY}`,
+          Authorization: `Bearer ${this.API_KEY}`,
         },
         body: JSON.stringify(payload),
       });

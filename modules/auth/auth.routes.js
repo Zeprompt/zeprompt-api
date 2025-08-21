@@ -11,5 +11,38 @@ router.post("/register", validate(registerSchema), (req, res) =>
 router.post("/login", validate(loginSchema), (req, res) => {
   authController.login(req, res);
 });
+router.get("/verify-email", (req, res) => {
+  authController.verifyEmail(req, res);
+});
+router.post("/resend-verification-email", (req, res) => {
+  authController.resendVerificationEmail(req, res);
+});
+router.post("/request-password-reset", (req, res) => {
+  authController.requestPasswordReset(req, res);
+});
+router.get("/verify-password-reset-token", (req, res) => {
+  authController.verifyPasswordResetToken(req, res);
+});
+router.post("/reset-password", (req, res) => {
+  authController.resetPassword(req, res);
+});
+router.put("/disabled/:userId", (req, res) => {
+  authController.disableUser(req, res);
+});
+router.put("/enable/:userId", (req, res) => {
+  authController.enableUser(req, res);
+});
+router.delete("/soft-delete/:userId", (req, res) => {
+  authController.softDeleteUser(req, res);
+});
+router.put("/restore/:userId", (req, res) => {
+  authController.restoreUser(req, res);
+});
+router.get("/users/me", (req, res) => {
+  authController.getProfile(req, res);
+});
+router.put("/users/me", (req, res) => {
+  authController.updateProfile(req, res);
+});
 
 module.exports = router;

@@ -1,7 +1,7 @@
 require("dotenv").config();
 require("./workers/emailWorker");
+
 const express = require("express");
-const app = express();
 const cors = require("cors");
 const logger = require("./utils/logger");
 const { sequelize } = require("./models");
@@ -12,16 +12,14 @@ const authRoutes = require("./modules/auth/auth.routes");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
 
-// Définition des constantes
-const port = 3000;
+const app = express();
+const port = process.env.PORT || 3000;
 
-// Middleware globaux
 app.use(cors());
 app.use(express.json());
 setupHelmet(app);
 setupRateLimit(app);
 
-// Différentes routes
 app.use("/api/auth", authRoutes);
 // Swagger UI
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
@@ -66,31 +64,31 @@ app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-// Test Redis connection
-(async () => {
-  try {
-    redisClient.on("connect", () => {
-      logger.info("✅ Connexion Redis réussie");
-    });
+// Redis connection
+redisClient.on("connect", () => logger.info("✅ Connexion Redis réussie"));
+redisClient.on("error", (error) =>
+  logger.error("❌ Erreur connexion Redis:", error)
+);
 
-    redisClient.on("error", (error) => {
-      console.error("❌ Erreur connexion Redis:", error);
-    });
-  } catch (error) {
-    console.error("❌ Erreur connexion Redis:", error);
-  }
-})();
-
-// Test DB Sequelize connection
+// DB connection
 (async () => {
   try {
     await sequelize.authenticate();
     logger.info("✅ Connexion DB réussie");
   } catch (error) {
-    console.error("❌ Erreur connexion DB:", error);
+    logger.error("❌ Erreur connexion DB:", error);
   }
 })();
 
+// Gestion globale des erreurs non gérées
+process.on("uncaughtException", (err) => {
+  logger.error("❌ Uncaught Exception:", err);
+  process.exit(1);
+});
+process.on("unhandledRejection", (reason, promise) => {
+  logger.error("❌ Unhandled Rejection at:", promise, "reason:", reason);
+});
+
 app.listen(port, () => {
-  logger.info(`Example app listening at http://localhost:${port}`);
+  logger.info(`🚀 API démarrée sur http://localhost:${port}`);
 });

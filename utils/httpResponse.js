@@ -1,3 +1,4 @@
+const logger = require("./logger");
 /**
  * Classe utilitaire pour standardiser les réponses HTTP de l'API.
  * Fournit des méthodes statiques pour envoyer des réponses de succès ou d'erreur.
@@ -12,7 +13,7 @@ class HttpResponse {
    * @param {Error} [error] - Objet erreur à logger (optionnel).
    */
   static sendError(res, status, resource, action, error) {
-    if (error) console.error(`Error ${action} ${resource}:`, error);
+    if (error) logger.error(`Error ${action} ${resource}: ${error.stack || error}`);
     res.status(status).json({
       message: `Internal server error while ${action} ${resource}.`,
     });
@@ -27,6 +28,7 @@ class HttpResponse {
    * @param {Object} [data] - Données à retourner (optionnel).
    */
   static sendSuccess(res, status, resource, action, data) {
+    logger.info(`Success ${action} ${resource} : ${JSON.stringify(data)}`);
     res.status(status).json({
       message: `${resource} successfully ${action}.`,
       data: data,
