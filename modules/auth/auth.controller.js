@@ -203,6 +203,38 @@ class AuthController {
       httpResponse.sendError(res, statusCode, "user", "restore", error.message);
     }
   }
+
+  async getProfile(req, res) {
+    try {
+      const user = await authService.getUserProfile(req.user.id);
+      httpResponse.sendSuccess(res, 200, "auth", "getProfile", user);
+    } catch (error) {
+      const statusCode = error.statusCode || 500;
+      httpResponse.sendError(
+        res,
+        statusCode,
+        "auth",
+        "getProfile",
+        error.message
+      );
+    }
+  }
+
+  async updateProfile(req, res) {
+    try {
+      const user = await authService.updateUserProfile(req.user.id, req.body);
+      httpResponse.sendSuccess(res, 200, "auth", "updateUserProfile", user);
+    } catch (error) {
+      const statusCode = error.statusCode || 500;
+      httpResponse.sendError(
+        res,
+        statusCode,
+        "auth",
+        "updateUserProfile",
+        error.message
+      );
+    }
+  }
 }
 
 module.exports = new AuthController();

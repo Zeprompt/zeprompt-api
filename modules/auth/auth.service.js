@@ -31,7 +31,13 @@ class AuthService {
     );
 
     return {
-      user,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        username: user.username,
+        emailVerified: user.emailVerified,
+      },
       emailResult,
     };
   }
@@ -71,6 +77,7 @@ class AuthService {
         email: user.email,
         username: user.username,
         role: user.role,
+        emailVerified: user.emailVerified,
       },
       token,
     };
@@ -98,7 +105,13 @@ class AuthService {
 
     return {
       message: result.message,
-      user: result.user,
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+        username: result.user.username,
+        role: result.user.role,
+        emailVerified: result.user.emailVerified,
+      },
     };
   }
 
@@ -150,7 +163,10 @@ class AuthService {
     )}`;
 
     const htmlContent = generateResetPasswordEmailTemplate({
-      user: { username: user.username, email: user.email },
+      user: {
+        username: user.username,
+        email: user.email,
+      },
       resetUrl,
     });
 
@@ -212,39 +228,92 @@ class AuthService {
 
   // Désactiver un compte
   async disableUser(userId) {
-    const user = await userService.updateUser(userId, { active: false });
+    const user = await userService.getUserById(userId);
+    if (!user.active) {
+      const err = new Error("Utilisateur déjà désactivé.");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const updatedUser = await userService.updateUser(userId, { active: false });
     return {
       message: "Compte désactivé avec succès",
-      user,
+      user: {
+        id: updatedUser.id,
+        role: updatedUser.role,
+        email: updatedUser.email,
+        username: updatedUser.username,
+        emailVerified: updatedUser.emailVerified,
+      },
     };
   }
 
   // Réactiver un compte
   async enableUser(userId) {
     const user = await userService.updateUser(userId, { active: true });
+
+    if (user.active) {
+      const err = new Error("Utilisateur déjà actif.");
+      err.statusCode = 400;
+      throw err;
+    }
+
     return {
       message: "Compte réactivé avec succès",
-      user,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        username: user.username,
+        emailVerified: user.emailVerified,
+      },
     };
   }
 
   // Soft delete (marqer comme supprimé)
   async softDeleteUser(userId) {
-    const user = await userService.updateUser(userId, {
+    const user = await userService.getUserById(userId);
+
+    if (user.deletedAt) {
+      const err = new Error("Utilisateur déjà supprimé.");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const deletedUser = await userService.updateUser(userId, {
       deletedAt: new Date(),
     });
     return {
       message: "Compte supprimé (soft delete)",
-      user,
+      user: {
+        id: deletedUser.id,
+        role: deletedUser.role,
+        email: deletedUser.email,
+        username: deletedUser.username,
+        emailVerified: deletedUser.emailVerified,
+      },
     };
   }
 
   // Restaurer un compte supprimé
   async restoreUser(userId) {
     const user = await userService.updateUser(userId, { deletedAt: null });
+
+    if (!user.deletedAt) {
+      const err = new Error("Utilisateur non supprimé.");
+      err.statusCode = 400;
+      throw err;
+    }
+
     return {
       message: "Compte restauré",
-      user,
+      user: {
+        id: user.id,
+        role: user.role,
+        email: user.email,
+        username: user.username,
+        emailVerified: user.emailVerified,
+      },
     };
   }
 
@@ -265,6 +334,56 @@ class AuthService {
     }
 
     return true;
+  }
+
+  async getUserProfile(userId) {
+    const user = await userService.getUserById(userId);
+
+    if (!user) {
+      const err = new Error("Utilisateur non trouvé.");
+      err.statusCode = 404;
+      throw err;
+    }
+
+    return {
+      message: "Profile récupéré avec succès",
+      user: {
+        id: user.id,
+        role: user.role,
+        email: user.email,
+        username: user.username,
+      },
+    };
+  }
+
+  async updateUserProfile(userId, updateData) {
+    const allowedFields = ["username", "email", "avatar", "bio"];
+    const dataToUpdate = {};
+
+    for (const key of allowedFields) {
+      if (updateData[key] !== undefined) {
+        dataToUpdate[key] = updateData[key];
+      }
+    }
+
+    const updatedUser = await userService.updateUser(userId, dataToUpdate);
+
+    if (!updatedUser) {
+      const err = new Error("Mise à jour impossible.");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    return {
+      message: "Profile mis à jour avec succès.",
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        username: updatedUser.username,
+        avatar: updatedUser?.avatar,
+        bio: updatedUser?.bio,
+      },
+    };
   }
 }
 
