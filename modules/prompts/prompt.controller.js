@@ -1,5 +1,6 @@
 const httpResponse = require('../../utils/httpResponse');
 const promptService = require('./prompt.service');
+const viewService = require('./view.service');
 const { createPDFPromptSchema } = require('../../schemas/prompt.schema');
 const fs = require('fs');
 const path = require('path');
@@ -21,6 +22,8 @@ const path = require('path');
  *         imageUrl: { type: string, nullable: true }
  *         isPublic: { type: boolean }
  *         views: { type: integer }
+ *         likesCount: { type: integer }
+ *         viewCount: { type: integer }
  *         userId: { type: string, format: uuid }
  *         createdAt: { type: string, format: date-time }
  *         updatedAt: { type: string, format: date-time }
@@ -113,6 +116,8 @@ const path = require('path');
  *                         contentType: text
  *                         isPublic: true
  *                         views: 12
+ *                         likesCount: 5
+ *                         viewCount: 25
  *                         userId: "8d2c9c1e-1234-5678-9abc-def012345678"
  *                         Tags:
  *                           - id: "1"
@@ -260,6 +265,12 @@ class PromptController {
     try {
       const prompt = await promptService.getPublicById(req.params.id);
       if (!prompt) return res.status(404).json({ message: 'Prompt not found' });
+      
+      // Record view (anonymous or authenticated)
+      const userId = req.user ? req.user.id : null;
+      const anonymousId = !userId ? (req.ip || 'unknown') : null;
+      await viewService.recordView(prompt.id, req.user, anonymousId);
+      
       httpResponse.sendSuccess(res, 200, 'prompt', 'fetched', prompt);
     } catch (error) {
       httpResponse.sendError(res, 500, 'prompt', 'fetching by id', error);
@@ -413,6 +424,11 @@ class PromptController {
       if (!prompt || prompt.contentType !== 'pdf') return res.status(404).json({ message: 'PDF prompt not found' });
       if (!prompt.isPublic) return res.status(403).json({ message: 'Access denied: private prompt' });
       if (!prompt.pdfFilePath || !fs.existsSync(prompt.pdfFilePath)) return res.status(404).json({ message: 'PDF file not found' });
+
+      // Record view (anonymous or authenticated)
+      const userId = req.user ? req.user.id : null;
+      const anonymousId = !userId ? (req.ip || 'unknown') : null;
+      await viewService.recordView(prompt.id, req.user, anonymousId);
 
       const fileName = prompt.pdfOriginalName || `prompt-${prompt.id}.pdf`;
       res.setHeader('Content-Type', 'application/pdf');

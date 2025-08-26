@@ -29,8 +29,8 @@ class PromptRepository {
       { model: User, attributes: ['id', 'username', 'email'] },
     ];
 
-  // Always include Tags for output. We'll do filtering via a subquery in WHERE to avoid alias issues.
-  const tagInclude = [{ model: Tag, through: { attributes: [] } }];
+    // Always include Tags for output. We'll do filtering via a subquery in WHERE to avoid alias issues.
+    const tagInclude = [{ model: Tag, through: { attributes: [] } }];
 
     const findOptions = {
       where,
@@ -39,9 +39,23 @@ class PromptRepository {
       offset,
       order: orderBy,
       distinct: true,
-    };
-
-    if (tagNames.length > 0) {
+      attributes: {
+        include: [
+          [
+            sequelize.literal(
+              '(SELECT COUNT(*) FROM "likes" WHERE "likes"."prompt_id" = "Prompt"."id" AND "likes"."last_liked_at" >= NOW() - INTERVAL \'24 hours\')'
+            ),
+            'likesCount',
+          ],
+          [
+            sequelize.literal(
+              '(SELECT COUNT(*) FROM "views" WHERE "views"."prompt_id" = "Prompt"."id" AND "views"."last_viewed_at" >= NOW() - INTERVAL \'24 hours\')'
+            ),
+            'viewCount',
+          ],
+        ],
+      },
+    };    if (tagNames.length > 0) {
       const normalized = tagNames.map((n) => n.toLowerCase());
       const escapedList = normalized.map((n) => sequelize.escape(n)).join(', ');
       const subQuery = `(
@@ -73,6 +87,22 @@ class PromptRepository {
         { model: User, attributes: ['id', 'username', 'email'] },
         { model: Tag, through: { attributes: [] } },
       ],
+      attributes: {
+        include: [
+          [
+            sequelize.literal(
+              '(SELECT COUNT(*) FROM "likes" WHERE "likes"."prompt_id" = "Prompt"."id" AND "likes"."last_liked_at" >= NOW() - INTERVAL \'24 hours\')'
+            ),
+            'likesCount',
+          ],
+          [
+            sequelize.literal(
+              '(SELECT COUNT(*) FROM "views" WHERE "views"."prompt_id" = "Prompt"."id" AND "views"."last_viewed_at" >= NOW() - INTERVAL \'24 hours\')'
+            ),
+            'viewCount',
+          ],
+        ],
+      },
     });
   }
 
@@ -83,6 +113,22 @@ class PromptRepository {
         { model: User, attributes: ['id', 'username', 'email'] },
         { model: Tag, through: { attributes: [] } },
       ],
+      attributes: {
+        include: [
+          [
+            sequelize.literal(
+              '(SELECT COUNT(*) FROM "likes" WHERE "likes"."prompt_id" = "Prompt"."id" AND "likes"."last_liked_at" >= NOW() - INTERVAL \'24 hours\')'
+            ),
+            'likesCount',
+          ],
+          [
+            sequelize.literal(
+              '(SELECT COUNT(*) FROM "views" WHERE "views"."prompt_id" = "Prompt"."id" AND "views"."last_viewed_at" >= NOW() - INTERVAL \'24 hours\')'
+            ),
+            'viewCount',
+          ],
+        ],
+      },
     });
   }
 
@@ -91,6 +137,22 @@ class PromptRepository {
       where: { userId },
       include: [{ model: Tag, through: { attributes: [] } }],
       order: [['createdAt', 'DESC']],
+      attributes: {
+        include: [
+          [
+            sequelize.literal(
+              '(SELECT COUNT(*) FROM "likes" WHERE "likes"."prompt_id" = "Prompt"."id" AND "likes"."last_liked_at" >= NOW() - INTERVAL \'24 hours\')'
+            ),
+            'likesCount',
+          ],
+          [
+            sequelize.literal(
+              '(SELECT COUNT(*) FROM "views" WHERE "views"."prompt_id" = "Prompt"."id" AND "views"."last_viewed_at" >= NOW() - INTERVAL \'24 hours\')'
+            ),
+            'viewCount',
+          ],
+        ],
+      },
     });
   }
 
@@ -142,6 +204,22 @@ class PromptRepository {
         { model: User, attributes: ['id', 'username', 'email'] },
         { model: Tag, through: { attributes: [] } },
       ],
+      attributes: {
+        include: [
+          [
+            sequelize.literal(
+              '(SELECT COUNT(*) FROM "likes" WHERE "likes"."prompt_id" = "Prompt"."id" AND "likes"."last_liked_at" >= NOW() - INTERVAL \'24 hours\')'
+            ),
+            'likesCount',
+          ],
+          [
+            sequelize.literal(
+              '(SELECT COUNT(*) FROM "views" WHERE "views"."prompt_id" = "Prompt"."id" AND "views"."last_viewed_at" >= NOW() - INTERVAL \'24 hours\')'
+            ),
+            'viewCount',
+          ],
+        ],
+      },
       order: [['views', 'DESC']],
       limit: limitValue,
     });
