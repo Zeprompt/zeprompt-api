@@ -66,7 +66,7 @@ class LikeRepository {
       include: [
         { model: User, attributes: ['id', 'username', 'email'] }
       ],
-      order: [[sequelize.literal('likesCount'), 'DESC']],
+      order: [[sequelize.literal('(SELECT COUNT(*) FROM "likes" WHERE "likes"."prompt_id" = "Prompt"."id" AND "likes"."last_liked_at" >= NOW() - INTERVAL \'24 hours\')'), 'DESC']],
       limit: parseInt(limit, 10),
     });
   }
