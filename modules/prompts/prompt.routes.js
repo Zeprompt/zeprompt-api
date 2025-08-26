@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const promptController = require('./prompt.controller');
+const likeController = require('./like.controller');
+const viewController = require('./view.controller');
 const validate = require('../../middleware/validate');
 const authenticate = require('../../middleware/auth');
 const { createPromptSchema, updatePromptSchema } = require('../../schemas/prompt.schema');
@@ -12,6 +14,8 @@ router.get('/', (req, res) => promptController.listPublic(req, res));
 router.get('/me/list', authenticate, (req, res) => promptController.listMine(req, res));
 // Popular prompts (public)
 router.get('/popular', (req, res) => promptController.listPopular(req, res));
+// Popular prompts by likes
+router.get('/popular/likes', (req, res) => likeController.getPopularByLikes(req, res));
 // Public get by id
 router.get('/:id', (req, res) => promptController.getPublicById(req, res));
 // Auth: create
@@ -32,5 +36,11 @@ router.get('/:id/download', (req, res) => promptController.downloadPdf(req, res)
 router.put('/:id', authenticate, validate(updatePromptSchema), (req, res) => promptController.updateOwned(req, res));
 // Auth: delete owned
 router.delete('/:id', authenticate, (req, res) => promptController.deleteOwned(req, res));
+
+// Views and Likes
+router.post('/:id/view', (req, res) => viewController.recordView(req, res));
+router.get('/:id/views', (req, res) => viewController.getViewStats(req, res));
+router.post('/:id/like', (req, res) => likeController.likePrompt(req, res));
+router.get('/:id/likes', (req, res) => likeController.getLikesCount(req, res));
 
 module.exports = router;

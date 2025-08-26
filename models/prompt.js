@@ -14,6 +14,9 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'prompt_id',
         otherKey: 'tag_id',
       });
+      // Relations avec Likes et Views
+      Prompt.hasMany(models.Like, { foreignKey: 'promptId' });
+      Prompt.hasMany(models.View, { foreignKey: 'promptId' });
     }
   }
 
