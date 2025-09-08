@@ -47,5 +47,5 @@ class AuthMiddleware {
     next();
   }
 }
-// Export a callable middleware function for Express
-module.exports = (req, res, next) => AuthMiddleware.authenticate(req, res, next);
+
+module.exports = AuthMiddleware;
