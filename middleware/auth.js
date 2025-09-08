@@ -5,7 +5,7 @@ class AuthMiddleware {
   static authenticate(req, res, next) {
     try {
       if (!req.headers || !req.headers.authorization) {
-        res.status(401).json({
+        return res.status(401).json({
           error: "Authorization header manquant.",
         });
       }
@@ -21,7 +21,7 @@ class AuthMiddleware {
       next();
     } catch (error) {
       logger.error(`Erreur d'authentification : ${error.message}`);
-      res.status(401).json({
+      return res.status(401).json({
         error: "Authentification echouée.",
         details: error.message,
       });

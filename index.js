@@ -9,6 +9,8 @@ const redisClient = require("./config/redis");
 const setupHelmet = require("./config/helmet");
 const setupRateLimit = require("./config/rateLimit");
 const authRoutes = require("./modules/auth/auth.routes");
+const tagRoutes = require("./modules/tags/tag.routes");
+const promptRoutes = require("./modules/prompts/prompt.routes");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
 
@@ -21,6 +23,8 @@ setupHelmet(app);
 setupRateLimit(app);
 
 app.use("/api/auth", authRoutes);
+app.use("/api/tags", tagRoutes);
+app.use("/api/prompts", promptRoutes);
 // Swagger UI
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
 
@@ -60,8 +64,9 @@ app.get("/api/health", (req, res) => {
     version,
   });
 });
+
 app.get("/", (req, res) => {
-  res.send("Hello World!");
+  res.send("Hello World! yeah");
 });
 
 // Redis connection
