@@ -1,5 +1,5 @@
 const viewRepository = require('./view.repository');
-const promptRepository = require('./prompt.repository');
+const promptRepository = require('../prompts/prompt.repository');
 
 class ViewService {
   // Record a view and increment view counter if it's a new view (>1h since last view)

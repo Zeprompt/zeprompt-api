@@ -11,10 +11,10 @@ const validate = (schema) => {
     } catch (error) {
       return res.status(400).json({
         error: "Validation error",
-        details: error.errors.map((e) => ({
-          field: e.path.join("."),
-          message: e.message,
-        })),
+        details: {
+          name: error.name,
+          message: error.message,
+        }
       });
     }
   };

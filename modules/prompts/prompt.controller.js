@@ -1,6 +1,6 @@
 const httpResponse = require('../../utils/httpResponse');
 const promptService = require('./prompt.service');
-const viewService = require('./view.service');
+const viewService = require('../view/view.service');
 const { createPDFPromptSchema } = require('../../schemas/prompt.schema');
 const fs = require('fs');
 const path = require('path');

@@ -1,5 +1,5 @@
 const likeRepository = require('./like.repository');
-const promptRepository = require('./prompt.repository');
+const promptRepository = require('../prompts/prompt.repository');
 
 class LikeService {
   // Process a like request from a user or anonymous visitor

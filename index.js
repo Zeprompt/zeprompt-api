@@ -65,10 +65,6 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-app.get("/", (req, res) => {
-  res.send("Hello World! yeah");
-});
-
 // Redis connection
 redisClient.on("connect", () => logger.info("✅ Connexion Redis réussie"));
 redisClient.on("error", (error) =>
