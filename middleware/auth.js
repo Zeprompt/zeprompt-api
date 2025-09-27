@@ -1,3 +1,4 @@
+const AppError = require("../utils/appError");
 const { verifyToken } = require("../utils/jwt");
 const logger = require("../utils/logger");
 
@@ -9,14 +10,14 @@ class AuthMiddleware {
           error: "Authorization header manquant.",
         });
       }
-
+      
       const token = req.headers.authorization.split(" ")[1];
       if (!token) {
         return res.status(401).json({
           error: "Token manquant.",
         });
       }
-
+      
       req.user = verifyToken(token);
       next();
     } catch (error) {
@@ -37,14 +38,51 @@ class AuthMiddleware {
         error: "Utilisateur non authentifié.",
       });
     }
-
+    
     if (req.user.role != "admin") {
       logger.error(`${req.user.email} n'est pas un admin.`);
       return res.status(403).json({
         error: "Accès refusé : droits administrateur requis",
       });
     }
+    
     next();
+  }
+
+  static validate(schema) {
+    return (req, res, next) => {
+      try {
+        schema.parse(req.body);
+        next();
+      } catch (error) {
+        let details = [];
+        
+        if (error.issues && Array.isArray(error.issues)) {
+          details = error.issues.map(err => ({
+            field: err.path ? err.path.join('.') : 'unknown', 
+            message: err.message || 'Erreur de validation',
+            code: err.code || 'unknown',
+            received: err.received
+          }));
+        } else {
+          details = [{
+            field: 'unknown',
+            message: error.message || 'Erreur de validation inconnue',
+            code: 'unknown'
+          }];
+        }
+        
+        return next(
+          new AppError({
+            message: "Validation error",
+            userMessage: "Données invalides",
+            statusCode: 400,
+            errorCode: "VALIDATION_ERROR",
+            details,
+          })
+        );
+      }
+    };
   }
 }
 
