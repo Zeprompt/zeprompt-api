@@ -7,6 +7,12 @@ module.exports = {
     database: process.env.PGDATABASE,
     host: process.env.PGHOST,
     dialect: "postgres",
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false, // ← autorise les certificats auto-signés
+      },
+    },
   },
   test: {
     username: process.env.PGUSER,
@@ -14,6 +20,12 @@ module.exports = {
     database: process.env.PGDATABASE,
     host: process.env.PGHOST,
     dialect: "postgres",
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false,
+      },
+    },
   },
   production: {
     username: process.env.PGUSER,
@@ -21,5 +33,11 @@ module.exports = {
     database: process.env.PGDATABASE,
     host: process.env.PGHOST,
     dialect: "postgres",
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false,
+      },
+    },
   },
 };

@@ -27,6 +27,17 @@ module.exports = (err, req, res, next) => {
     });
   }
 
+  if (err.name === "SequelizeConnectionError") {
+    logger.error(`[DATABASE CONNEXION ERROR] ${err.message}`);
+    return res.status(500).json({
+      success: false,
+      code: "DATABASE_CONNEXION_ERROR",
+      message:
+        "Impossible de se connecter à la base de données. Vérifiez votre connexion et vos paramètres.",
+      details: err.message,
+    });
+  }
+
   if (err.name === "SequelizeUniqueConstraintError") {
     const field = err.errors[0].path;
     const value = err.errors[0].value;

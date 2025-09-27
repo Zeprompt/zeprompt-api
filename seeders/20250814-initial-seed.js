@@ -1,113 +1,168 @@
-'use strict';
+"use strict";
+
+const crypto = require("crypto");
+const { randomUUID } = require("crypto");
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface) {
-  // Helpers
-  const { randomUUID } = require('crypto');
-  const now = new Date();
+    const now = new Date();
 
-  // Create a user with verified email
-  const userId = randomUUID();
-  const passwordHash = await require('../utils/passwordUtils').hashPassword('Binks1224');
+    // -------------------------
+    // Helpers
+    // -------------------------
+    const getTimestamp = () => now;
+    const generateHash = (title, content, contentType) =>
+      crypto
+        .createHash("sha256")
+        .update(`${title}|${content}|${contentType}`)
+        .digest("hex");
 
-    await queryInterface.bulkInsert('users', [
+    // -------------------------
+    // Users
+    // -------------------------
+    const userId = randomUUID();
+    const passwordHash = await require("../utils/passwordUtils").hashPassword(
+      "Binks1224"
+    );
+
+    const users = [
       {
         id: userId,
-        username: '3d3m',
-        email: 'ekpomachi@gmail.com',
+        username: "3d3m",
+        email: "ekpomachi@gmail.com",
         password: passwordHash,
-        role: 'user',
-        emailverificationtoken: true, // mapped via field to emailVerified
-        createdAt: now,
-        updatedAt: now,
+        role: "user",
+        emailverificationtoken: true,
+        createdAt: getTimestamp(),
+        updatedAt: getTimestamp(),
       },
-    ]);
+    ];
 
-    // Create tags
-    const tagIds = {};
-    const tags = ['ai', 'seo', 'marketing', 'pdf', 'tutorial'];
-    for (const name of tags) {
-      tagIds[name] = randomUUID();
-    }
+    await queryInterface.bulkInsert("users", users, {});
 
-    await queryInterface.bulkInsert('tags', Object.entries(tagIds).map(([name, id]) => ({
-      id,
+    // -------------------------
+    // Tags
+    // -------------------------
+    const tagNames = ["ai", "seo", "marketing", "pdf", "tutorial"];
+    const tags = tagNames.map((name) => ({
+      id: randomUUID(),
       name,
-      createdAt: now,
-      updatedAt: now,
-    })));
+      createdAt: getTimestamp(),
+      updatedAt: getTimestamp(),
+    }));
 
-    // Create 3 prompts linked to the user
-  const promptIds = [randomUUID(), randomUUID(), randomUUID()];
+    const tagMap = Object.fromEntries(tags.map((t) => [t.name, t.id]));
 
-    const prompts = [
+    await queryInterface.bulkInsert("tags", tags, {});
+
+    // -------------------------
+    // Prompts
+    // -------------------------
+    const promptData = [
       {
-        id: promptIds[0],
-        title: 'AI SEO Prompt',
-        content: 'Write a SEO-optimized article about AI for marketing.',
-        content_type: 'text',
-        user_id: userId,
-        is_public: true,
+        title: "AI SEO Prompt",
+        content: "Write a SEO-optimized article about AI for marketing.",
+        content_type: "text",
+        pdf_file_path: null,
+        pdf_file_size: null,
+        pdf_original_name: null,
         views: 5,
-  createdAt: now,
-  updatedAt: now,
+        is_public: true,
       },
       {
-        id: promptIds[1],
-        title: 'Marketing Strategy PDF',
-        content: 'Brief for the PDF prompt.',
-        content_type: 'pdf',
-        pdf_file_path: 'uploads/pdfs/sample1.pdf',
+        title: "Marketing Strategy PDF",
+        content: "Brief for the PDF prompt.",
+        content_type: "pdf",
+        pdf_file_path: "uploads/pdfs/sample1.pdf",
         pdf_file_size: 123456,
-        pdf_original_name: 'strategy.pdf',
-        user_id: userId,
-        is_public: true,
+        pdf_original_name: "strategy.pdf",
         views: 3,
-  createdAt: now,
-  updatedAt: now,
+        is_public: true,
       },
       {
-        id: promptIds[2],
-        title: 'Tutorial: Onboarding',
-        content: 'Create onboarding prompts for new users.',
-        content_type: 'text',
-        user_id: userId,
-        is_public: true,
+        title: "Tutorial: Onboarding",
+        content: "Create onboarding prompts for new users.",
+        content_type: "text",
+        pdf_file_path: null,
+        pdf_file_size: null,
+        pdf_original_name: null,
         views: 8,
-  createdAt: now,
-  updatedAt: now,
+        is_public: true,
       },
     ];
 
-    await queryInterface.bulkInsert('prompts', prompts);
+    const prompts = promptData.map((p) => {
+      const id = randomUUID();
+      return {
+        id,
+        title: p.title,
+        content: p.content,
+        content_type: p.content_type,
+        pdf_file_path: p.pdf_file_path,
+        pdf_file_size: p.pdf_file_size,
+        pdf_original_name: p.pdf_original_name,
+        user_id: userId,
+        is_public: p.is_public,
+        views: p.views,
+        hash: generateHash(p.title, p.content, p.content_type),
+        createdAt: getTimestamp(),
+        updatedAt: getTimestamp(),
+      };
+    });
 
-    // Link prompts to tags (2-3 tags per prompt)
-    const promptTags = [
-      // AI SEO Prompt -> ai, seo
-      { prompt_id: promptIds[0], tag_id: tagIds['ai'], createdAt: now, updatedAt: now },
-      { prompt_id: promptIds[0], tag_id: tagIds['seo'], createdAt: now, updatedAt: now },
-      // Marketing Strategy PDF -> marketing, pdf, ai
-      { prompt_id: promptIds[1], tag_id: tagIds['marketing'], createdAt: now, updatedAt: now },
-      { prompt_id: promptIds[1], tag_id: tagIds['pdf'], createdAt: now, updatedAt: now },
-      { prompt_id: promptIds[1], tag_id: tagIds['ai'], createdAt: now, updatedAt: now },
-      // Tutorial Onboarding -> tutorial, marketing
-      { prompt_id: promptIds[2], tag_id: tagIds['tutorial'], createdAt: now, updatedAt: now },
-      { prompt_id: promptIds[2], tag_id: tagIds['marketing'], createdAt: now, updatedAt: now },
+    await queryInterface.bulkInsert("prompts", prompts, {});
+
+    // -------------------------
+    // Prompt Tags
+    // -------------------------
+    const promptTagsData = [
+      { promptIndex: 0, tags: ["ai", "seo"] },
+      { promptIndex: 1, tags: ["marketing", "pdf", "ai"] },
+      { promptIndex: 2, tags: ["tutorial", "marketing"] },
     ];
 
-    await queryInterface.bulkInsert('prompt_tags', promptTags);
+    const promptTags = [];
+    promptTagsData.forEach((pt) => {
+      pt.tags.forEach((tagName) => {
+        promptTags.push({
+          prompt_id: prompts[pt.promptIndex].id,
+          tag_id: tagMap[tagName],
+          createdAt: getTimestamp(),
+          updatedAt: getTimestamp(),
+        });
+      });
+    });
+
+    await queryInterface.bulkInsert("prompt_tags", promptTags, {});
   },
 
   async down(queryInterface, Sequelize) {
-    // Delete prompt_tags for the created prompts (by title)
-    const titles = ['AI SEO Prompt', 'Marketing Strategy PDF', 'Tutorial: Onboarding'];
+    const titles = [
+      "AI SEO Prompt",
+      "Marketing Strategy PDF",
+      "Tutorial: Onboarding",
+    ];
+    const tagNames = ["ai", "seo", "marketing", "pdf", "tutorial"];
+
     await queryInterface.sequelize.query(
       `DELETE FROM "prompt_tags" WHERE prompt_id IN (SELECT id FROM "prompts" WHERE title IN (:titles));`,
       { replacements: { titles } }
     );
-    await queryInterface.bulkDelete('prompts', { title: { [Sequelize.Op.in]: titles } }, {});
-    await queryInterface.bulkDelete('tags', { name: { [Sequelize.Op.in]: ['ai', 'seo', 'marketing', 'pdf', 'tutorial'] } }, {});
-    await queryInterface.bulkDelete('users', { email: 'ekpomachi@gmail.com' }, {});
+    await queryInterface.bulkDelete(
+      "prompts",
+      { title: { [Sequelize.Op.in]: titles } },
+      {}
+    );
+    await queryInterface.bulkDelete(
+      "tags",
+      { name: { [Sequelize.Op.in]: tagNames } },
+      {}
+    );
+    await queryInterface.bulkDelete(
+      "users",
+      { email: "ekpomachi@gmail.com" },
+      {}
+    );
   },
 };
