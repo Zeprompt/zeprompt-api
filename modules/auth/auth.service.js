@@ -2,10 +2,10 @@ const userService = require("../users/user.service");
 const { hashPassword, comparePassword } = require("../../utils/passwordUtils");
 const EmailVerificationService = require("../../services/emailVerificationService");
 const { generateToken } = require("../../utils/jwt");
-const redisClient = require("../../config/redis");
 const emailQueue = require("../../queues/emailQueue");
 const generateResetPasswordEmailTemplate = require("../../templates/resentPasswordEmail");
 const AppError = require("../../utils/appError");
+const CacheService = require("../../services/cacheService");
 
 class AuthService {
   // Inscription
@@ -185,7 +185,7 @@ class AuthService {
 
     const resetToken = EmailVerificationService.generateVerificationToken();
     const redisKey = `password_reset:${user.email}`;
-    await redisClient.set(redisKey, resetToken, "EX", 3600); // expire en 1h
+    await CacheService.set(redisKey, resetToken, 3600)
 
     const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
     const resetUrl = `${baseUrl}/api/auth/verify-password-reset-token?token=${resetToken}&email=${encodeURIComponent(
@@ -224,7 +224,7 @@ class AuthService {
   // Vérifier le token envoyé par email
   async verifyPasswordResetToken(token, email) {
     const redisKey = `password_reset:${email}`;
-    const storedToken = await redisClient.get(redisKey);
+    const storedToken = await CacheService.get(redisKey);
 
     if (!storedToken || storedToken !== token) {
       throw new AppError({
@@ -254,7 +254,7 @@ class AuthService {
     }
 
     await userService.updateUser(user.id, { password: hashedPassword });
-    await redisClient.del(`password_reset:${email}`);
+    await CacheService.del(`password_reset:${email}`);
 
     return {
       succes: true,
