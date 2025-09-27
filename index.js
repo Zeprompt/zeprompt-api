@@ -13,12 +13,15 @@ const tagRoutes = require("./modules/tags/tag.routes");
 const promptRoutes = require("./modules/prompts/prompt.routes");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
+const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+
+// Sécurité HTTP avec Helmet
 setupHelmet(app);
 setupRateLimit(app);
 
@@ -64,6 +67,9 @@ app.get("/api/health", (req, res) => {
     version,
   });
 });
+
+// Gestion des erreurs
+app.use(errorHandler);
 
 // Redis connection
 redisClient.on("connect", () => logger.info("✅ Connexion Redis réussie"));
