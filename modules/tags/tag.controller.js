@@ -1,5 +1,5 @@
-const httpResponse = require('../../utils/httpResponse');
-const tagService = require('./tag.service');
+const AppResponse = require("../../utils/appResponse");
+const tagService = require("./tag.service");
 
 /**
  * @openapi
@@ -145,52 +145,78 @@ const tagService = require('./tag.service');
  */
 
 class TagController {
-  async getAll(req, res) {
+  async getAll(req, res, next) {
     try {
-      const tags = await tagService.getAll();
-      httpResponse.sendSuccess(res, 200, 'tag', 'fetched', tags);
+      const data = await tagService.getAll();
+      new AppResponse({
+        message: "Catégorie trouvée avec succès.",
+        statusCode: 200,
+        data: { tags: data },
+        success: true,
+        code: "TAGS_FOUNDS",
+      }).send(res);
     } catch (error) {
-      httpResponse.sendError(res, 500, 'tag', 'fetching', error);
+      next(error);
     }
   }
 
-  async getById(req, res) {
+  async getById(req, res, next) {
     try {
-      const tag = await tagService.getById(req.params.id);
-      if (!tag) return res.status(404).json({ message: 'Tag not found' });
-      httpResponse.sendSuccess(res, 200, 'tag', 'fetched by Id', tag);
+      const data = await tagService.getById(req.params.id);
+      new AppResponse({
+        message: "Catégorie récupéré avec succès.",
+        statusCode: 200,
+        data: { tag: data },
+        sucess: true,
+        code: "TAG_FOUND",
+      }).send(res);
     } catch (error) {
-      httpResponse.sendError(res, 500, 'tag', 'fetching by Id', error);
+      next(error);
     }
   }
 
-  async create(req, res) {
+  async create(req, res, next) {
     try {
-      const tag = await tagService.create(req.body);
-      httpResponse.sendSuccess(res, 201, 'tag', 'created', tag);
+      const data = await tagService.create(req.body);
+      new AppResponse({
+        message: "Catégorie créé avec succès.",
+        statusCode: 201,
+        data: { tag: data },
+        success: true,
+        code: "TAG_CREATED",
+      }).send(res);
     } catch (error) {
-      const status = error.statusCode || 500;
-      httpResponse.sendError(res, status, 'tag', 'creating', error);
+      next(error);
     }
   }
 
-  async update(req, res) {
+  async update(req, res, next) {
     try {
-      const tag = await tagService.update(req.params.id, req.body);
-      if (!tag) return res.status(404).json({ message: 'Tag not found' });
-      httpResponse.sendSuccess(res, 200, 'tag', 'updated', tag);
+      const data = await tagService.update(req.params.id, req.body);
+      new AppResponse({
+        message: "Catégorie mis à jour avec succès.",
+        statusCode: 200,
+        data: { tag: data },
+        success: true,
+        code: "TAG_UPDATED",
+      }).send(res);
     } catch (error) {
-      httpResponse.sendError(res, 500, 'tag', 'updating', error);
+      next(error);
     }
   }
 
-  async delete(req, res) {
+  async delete(req, res, next) {
     try {
-      const tag = await tagService.delete(req.params.id);
-      if (!tag) return res.status(404).json({ message: 'Tag not found' });
-      httpResponse.sendSuccess(res, 200, 'tag', 'deleted', tag);
+      const data = await tagService.delete(req.params.id);
+      new AppResponse({
+        message: "Catégorie supprimé avec succès.",
+        statusCode: 200,
+        data: { tag: data },
+        success: true,
+        code: "TAG_DELETED",
+      }).send(res);
     } catch (error) {
-      httpResponse.sendError(res, 500, 'tag', 'deleting', error);
+      next(error);
     }
   }
 }

@@ -9,8 +9,8 @@ const {
 const AuthMiddleware = require("../../middleware/auth");
 
 // Public: list and get by id
-router.get("/", (req, res) => tagController.getAll(req, res));
-router.get("/:id", (req, res) => tagController.getById(req, res));
+router.get("/", (req, res, next) => tagController.getAll(req, res, next));
+router.get("/:id", (req, res, next) => tagController.getById(req, res, next));
 
 // Protected (admin): create/update/delete
 router.post(
@@ -18,20 +18,20 @@ router.post(
   AuthMiddleware.authenticate,
   AuthMiddleware.isAdmin,
   validate(createTagSchema),
-  (req, res) => tagController.create(req, res)
+  (req, res, next) => tagController.create(req, res, next)
 );
 router.put(
   "/:id",
   AuthMiddleware.authenticate,
   AuthMiddleware.isAdmin,
   validate(updateTagSchema),
-  (req, res) => tagController.update(req, res)
+  (req, res, next) => tagController.update(req, res, next)
 );
 router.delete(
   "/:id",
   AuthMiddleware.authenticate,
   AuthMiddleware.isAdmin,
-  (req, res) => tagController.delete(req, res)
+  (req, res, next) => tagController.delete(req, res, next)
 );
 
 module.exports = router;
