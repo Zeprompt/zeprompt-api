@@ -5,6 +5,7 @@ const { generateToken } = require("../../utils/jwt");
 const redisClient = require("../../config/redis");
 const emailQueue = require("../../queues/emailQueue");
 const generateResetPasswordEmailTemplate = require("../../templates/resentPasswordEmail");
+const AppError = require("../../utils/appError");
 
 class AuthService {
   // Inscription
@@ -13,7 +14,12 @@ class AuthService {
 
     const existingUser = await userService.getUserByEmail(email);
     if (existingUser) {
-      throw new Error("Email already in use");
+      throw new AppError({
+        message: "Email already in use",
+        statusCode: 409,
+        errorCode: "EMAIL_IN_USE",
+        userMessage: "Cet email est déjà utilisé.",
+      });
     }
 
     const hashedPassword = await hashPassword(password);
@@ -48,25 +54,34 @@ class AuthService {
 
     const user = await userService.getUserByEmail(email);
     if (!user) {
-      const err = new Error("Utilisateur non trouvé.");
-      err.statusCode = 404;
-      throw err;
+      throw new AppError({
+        message: "Email non trouvé",
+        statusCode: 401,
+        errorCode: "INVALID_EMAIL",
+        userMessage: "Aucun utilisateur avec cet email.",
+      });
     }
 
     // Vérifie status du compte
     await this.checkUserStatus(user);
 
     if (!user.emailVerified) {
-      const err = new Error("Email non vérifié");
-      err.statusCode = 403;
-      throw err;
+      throw new AppError({
+        message: "Email not verified",
+        statusCode: 403,
+        errorCode: "EMAIL_NOT_VERIFIED",
+        userMessage: "Veuillez vérifier votre email avant de vous connecter.",
+      });
     }
 
     const isPasswordValid = await comparePassword(password, user.password);
     if (!isPasswordValid) {
-      const err = new Error("Mot de passe incorrect");
-      err.statusCode = 401;
-      throw err;
+      throw new AppError({
+        message: "Invalid email or password",
+        statusCode: 401,
+        errorCode: "INVALID_CREDENTIALS",
+        userMessage: "Email ou mot de passe incorrect.",
+      });
     }
 
     const token = generateToken(user);
@@ -86,9 +101,12 @@ class AuthService {
   // Vérifier le token qui a été envoyé par email
   async verifyEmail(token, email) {
     if (!token || !email) {
-      const err = new Error("Token et email requis");
-      err.statusCode = 400;
-      throw err;
+      throw new AppError({
+        message: "Token et email requis",
+        statusCode: 400,
+        errorCode: "TOKEN_REQUIRED",
+        userMessage: "Token et email requis.",
+      });
     }
 
     // Vérifier si le token est valide
@@ -98,9 +116,12 @@ class AuthService {
     );
 
     if (!result.success) {
-      const err = new Error(result.error || "Vérification échouée.");
-      err.statusCode = 403;
-      throw err;
+      throw new AppError({
+        message: "Vérification échouée.",
+        statusCode: 403,
+        errorCode: "VERIFICATION_FAILD",
+        userMessage: "Vérification échouée.",
+      });
     }
 
     return {
@@ -119,16 +140,22 @@ class AuthService {
   async resendVerificationEmail(email) {
     const user = await userService.getUserByEmail(email);
     if (!user) {
-      const err = new Error("Utilisateur non trouvé.");
-      err.statusCode = 404;
-      throw err;
+      throw new AppError({
+        message: "Utilisateur non trouvé.",
+        statusCode: 404,
+        errorCode: "USER_NOT_FOUND",
+        userMessage: "Utilisateur non trouvé.",
+      });
     }
 
     // Vérifie si l'email est déjà validé
     if (user.emailVerified) {
-      const err = new Error("Email déjà vérifié.");
-      err.statusCode = 400;
-      throw err;
+      throw new AppError({
+        message: "Email déjà vérifié.",
+        statusCde: 400,
+        errorCode: "EMAIL_VERIFIED",
+        userMessage: "Email déjà vérifié.",
+      });
     }
 
     // Envoi dans la queue
@@ -148,9 +175,12 @@ class AuthService {
   async requestPasswordReset(email) {
     const user = await userService.getUserByEmail(email);
     if (!user) {
-      const err = new Error("Utilisateur non trouvé.");
-      err.statusCode = 404;
-      throw err;
+      throw new AppError({
+        message: "Utilisateur non trouvé.",
+        userMessage: "Utilisateur non trouvé",
+        statusCode: 404,
+        errorCode: "USER_NOT_FOUND",
+      });
     }
 
     const resetToken = EmailVerificationService.generateVerificationToken();
@@ -197,9 +227,12 @@ class AuthService {
     const storedToken = await redisClient.get(redisKey);
 
     if (!storedToken || storedToken !== token) {
-      const err = new Error("Token invalide ou expiré.");
-      err.statusCode = 400;
-      throw err;
+      throw new AppError({
+        message: "Token invalide ou expiré.",
+        userMessage: "Token invalide ou expiré.",
+        statusCode: 400,
+        errorCode: "INVALID_TOKEN",
+      });
     }
 
     return { valid: true, email };
@@ -212,9 +245,12 @@ class AuthService {
     const hashedPassword = await hashPassword(newPassword);
     const user = await userService.getUserByEmail(email);
     if (!user) {
-      const err = new Error("Utilisateur non trouvé.");
-      err.statusCode = 404;
-      throw err;
+      throw new AppError({
+        message: "Utilisateur non trouvé.",
+        userMessage: "Utilisateur non trouvé.",
+        statusCode: 404,
+        errorCode: "USER_NOT_FOUND",
+      });
     }
 
     await userService.updateUser(user.id, { password: hashedPassword });
@@ -230,9 +266,12 @@ class AuthService {
   async disableUser(userId) {
     const user = await userService.getUserById(userId);
     if (!user.active) {
-      const err = new Error("Utilisateur déjà désactivé.");
-      err.statusCode = 400;
-      throw err;
+      throw new AppError({
+        message: "Utilisateur déjà désactivé.",
+        userMessage: "Utilisateur déjà désactivé.",
+        statusCode: 400,
+        errorCode: "USER_ALREADY_DEACTIVATE",
+      });
     }
 
     const updatedUser = await userService.updateUser(userId, { active: false });
@@ -253,9 +292,12 @@ class AuthService {
     const user = await userService.updateUser(userId, { active: true });
 
     if (user.active) {
-      const err = new Error("Utilisateur déjà actif.");
-      err.statusCode = 400;
-      throw err;
+      throw new AppError({
+        message: "Utilisateur déjà actif.",
+        userMessage: "Utilisateur déjà actif.",
+        statusCode: 400,
+        errorCode: "USER_ALREADY_ACTIVE",
+      });
     }
 
     return {
@@ -275,9 +317,12 @@ class AuthService {
     const user = await userService.getUserById(userId);
 
     if (user.deletedAt) {
-      const err = new Error("Utilisateur déjà supprimé.");
-      err.statusCode = 400;
-      throw err;
+      throw new AppError({
+        message: "Utilisateur déjà supprimé.",
+        userMessage: "Utilisateur déjà supprimé.",
+        statusCode: 400,
+        errorCode: "USER_ALREADY_DELETE",
+      });
     }
 
     const deletedUser = await userService.updateUser(userId, {
@@ -300,9 +345,12 @@ class AuthService {
     const user = await userService.updateUser(userId, { deletedAt: null });
 
     if (!user.deletedAt) {
-      const err = new Error("Utilisateur non supprimé.");
-      err.statusCode = 400;
-      throw err;
+      throw new AppError({
+        message: "Utilisateur non supprimé.",
+        userMessage: "Utilisateur non supprimé.",
+        statusCode: 400,
+        errorCode: "USER_NOT_DELETE",
+      });
     }
 
     return {
@@ -320,17 +368,21 @@ class AuthService {
   // Vérifier avant connexion
   async checkUserStatus(user) {
     if (!user.active) {
-      const err = new Error(
-        "Votre compte est désactivé. Contactez l'administration."
-      );
-      err.statusCode = 403;
-      throw err;
+      throw new AppError({
+        message: "Compte désactivée.",
+        userMessage: "Votre compte est désactivé. Contactez l'administration.",
+        statusCode: 400,
+        errorCode: "USER_DELETED",
+      });
     }
 
     if (user.deletedAt) {
-      const err = new Error("Ce compte a été supprimé.");
-      err.statusCode = 403;
-      throw err;
+      throw new AppError({
+        message: "Ce compte a été supprimé.",
+        userMessage: "Ce compte a été supprimé.",
+        statusCode: "403",
+        errorCode: "ACCESS_REQUIRED",
+      });
     }
 
     return true;
@@ -340,9 +392,12 @@ class AuthService {
     const user = await userService.getUserById(userId);
 
     if (!user) {
-      const err = new Error("Utilisateur non trouvé.");
-      err.statusCode = 404;
-      throw err;
+      throw new AppError({
+        message: "Utilisateur non trouvé.",
+        userMessage: "Utilisateur non trouvé.",
+        statusCode: 404,
+        errorCode: "USER_NOT_FOUND",
+      });
     }
 
     return {
@@ -369,9 +424,12 @@ class AuthService {
     const updatedUser = await userService.updateUser(userId, dataToUpdate);
 
     if (!updatedUser) {
-      const err = new Error("Mise à jour impossible.");
-      err.statusCode = 400;
-      throw err;
+      throw new AppError({
+        message: "Mise à jour impossible.",
+        userMessage: "Mise à jour impossible.",
+        statusCode: 400,
+        errorCode: "IMPOSSIBLE_TO_UPDATE",
+      });
     }
 
     return {
