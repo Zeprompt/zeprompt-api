@@ -1,228 +1,114 @@
-const { Prompt, User, Tag, Sequelize, sequelize } = require('../../models');
+const { fn, col } = require("sequelize");
+const { Prompt, User, Tag, Like, View } = require("../../models");
+const AppError = require("../../utils/appError");
 
 class PromptRepository {
-  async findAllPublic({ search, page, limit, sort, order, tags }) {
-    const pageNumber = parseInt(page || 1, 10);
-    const pageSize = parseInt(limit || 10, 10);
-    const offset = (pageNumber - 1) * pageSize;
+  /**
+   * Créer un nouveau prompt
+   * @param {Object} data
+   * @returns {Promise<Prompt>}
+   */
+  async createPrompt(data) {
+    return await Prompt.create(data);
+  }
 
-    const where = { isPublic: true };
-    const orderBy = sort === 'createdAt' ? [['createdAt', order || 'DESC']] : [[sort || 'createdAt', order || 'DESC']];
+  /**
+   *
+   * @param {hash} hash
+   * @returns {Promise<Prompt>}
+   */
+  async findByHash(hash) {
+    return await Prompt.findOne({
+      where: { hash },
+    });
+  }
 
-    if (search) {
-      where[Sequelize.Op.or] = [
-        { title: { [Sequelize.Op.iLike]: `%${search}%` } },
-        { content: { [Sequelize.Op.iLike]: `%${search}%` } },
-      ];
-    }
+  /**
+   *
+   * @param {string} id
+   * @returns {Promise<Prompt | null>}
+   */
+  async findPromptById(id) {
+    const prompt = await Prompt.findByPk(id, {
+      include: [
+        { model: User, attributes: ["id", "username", "email"] },
+        { model: Tag, through: { attributes: [] } },
+        { model: Like, attributes: [] },
+        { model: View, attributes: [] },
+      ],
+      attributes: {
+        include: [
+          [fn("COUNT", col("Likes.id")), "totalLikes"],
+          [fn("COUNT", col("Views.id")), "totalViews"],
+        ],
+      },
+      group: [
+        "Prompt.id",
+        "User.id",
+        "Tags.id",
+        "Tags->prompt_tags.prompt_id",
+        "Tags->prompt_tags.tag_id",
+      ],
+      subQuery: false,
+    });
 
-    // Tag-based filtering: expect comma-separated tag names in query (?tags=ai,seo)
-    // We implement an "ALL tags" match using include + GROUP BY + HAVING COUNT(DISTINCT Tag.id) = tags.length
-    const tagNames = typeof tags === 'string'
-      ? tags.split(',').map((t) => t.trim()).filter(Boolean)
-      : Array.isArray(tags)
-        ? tags.map((t) => String(t).trim()).filter(Boolean)
-        : [];
+    return prompt;
+  }
 
-    // Base includes always include User and Tags (when no filtering).
-    const baseIncludes = [
-      { model: User, attributes: ['id', 'username', 'email'] },
-    ];
-
-    // Always include Tags for output. We'll do filtering via a subquery in WHERE to avoid alias issues.
-    const tagInclude = [{ model: Tag, through: { attributes: [] } }];
-
-    const findOptions = {
-      where,
-      include: [...baseIncludes, ...tagInclude],
-      limit: pageSize,
+  async getAllPrompts({ page = 1, limit = 20 }) {
+    const offset = (page - 1) * limit;
+    const { rows, count } = await Prompt.findAndCountAll({
       offset,
-      order: orderBy,
-      distinct: true,
-      attributes: {
-        include: [
-          [
-            sequelize.literal(
-              '(SELECT COUNT(*) FROM "likes" WHERE "likes"."prompt_id" = "Prompt"."id" AND "likes"."last_liked_at" >= NOW() - INTERVAL \'24 hours\')'
-            ),
-            'likesCount',
-          ],
-          [
-            sequelize.literal(
-              '(SELECT COUNT(*) FROM "views" WHERE "views"."prompt_id" = "Prompt"."id" AND "views"."last_viewed_at" >= NOW() - INTERVAL \'24 hours\')'
-            ),
-            'viewCount',
-          ],
-        ],
-      },
-    };    if (tagNames.length > 0) {
-      const normalized = tagNames.map((n) => n.toLowerCase());
-      const escapedList = normalized.map((n) => sequelize.escape(n)).join(', ');
-      const subQuery = `(
-        SELECT pt.prompt_id
-        FROM prompt_tags pt
-        JOIN tags t ON t.id = pt.tag_id
-        WHERE t.name IN (${escapedList})
-        GROUP BY pt.prompt_id
-        HAVING COUNT(DISTINCT t.id) = ${normalized.length}
-      )`;
-      findOptions.where = {
-        ...where,
-        [Sequelize.Op.and]: Sequelize.literal(`"Prompt"."id" IN ${subQuery}`),
-      };
+      limit,
+      order: [["createdAt", "DESC"]],
+    });
+    return {
+      prompts: rows,
+      total: count,
+      page,
+      pageCount: Math.ceil(count / limit),
+    };
+  }
+
+  /**
+   *
+   * @param {string} id
+   * @param {Object} data
+   * @returns {Promise<Prompt | null>}
+   */
+  async updatePrompt(id, data, currentUser) {
+    const prompt = await Prompt.findByPk(id);
+    if (!prompt) {
+      throw new AppError({
+        message: "Aucun prompt trouvé avec cet id",
+        userMessage: "Prompt introuvable.",
+        statusCode: 404,
+        errorCode: "PROMPT_NOT_FOUND",
+      });
     }
 
-    const { count, rows } = await Prompt.findAndCountAll(findOptions);
+    // Vérification des droits
+    if (prompt.userId !== currentUser.id && currentUser.role !== "admin") {
+      throw new AppError({
+        message: "Vous n'avez pas les droits pour modifier ce prompt",
+        userMessage: "Accès refusé",
+        statusCode: 403,
+        errorCode: "FORBIDDEN",
+      });
+    }
 
-    // When using GROUP BY, Sequelize returns count as an array; use its length as total groups (prompts)
-    const total = Array.isArray(count) ? count.length : count;
-
-    return { count: total, rows, pageNumber, pageSize };
-  }
-
-  async findByIdPublic(id) {
-    return Prompt.findOne({
-      where: { id, isPublic: true },
-      include: [
-        { model: User, attributes: ['id', 'username', 'email'] },
-        { model: Tag, through: { attributes: [] } },
-      ],
-      attributes: {
-        include: [
-          [
-            sequelize.literal(
-              '(SELECT COUNT(*) FROM "likes" WHERE "likes"."prompt_id" = "Prompt"."id" AND "likes"."last_liked_at" >= NOW() - INTERVAL \'24 hours\')'
-            ),
-            'likesCount',
-          ],
-          [
-            sequelize.literal(
-              '(SELECT COUNT(*) FROM "views" WHERE "views"."prompt_id" = "Prompt"."id" AND "views"."last_viewed_at" >= NOW() - INTERVAL \'24 hours\')'
-            ),
-            'viewCount',
-          ],
-        ],
-      },
-    });
-  }
-
-  async findById(id) {
-    return Prompt.findOne({
-      where: { id },
-      include: [
-        { model: User, attributes: ['id', 'username', 'email'] },
-        { model: Tag, through: { attributes: [] } },
-      ],
-      attributes: {
-        include: [
-          [
-            sequelize.literal(
-              '(SELECT COUNT(*) FROM "likes" WHERE "likes"."prompt_id" = "Prompt"."id" AND "likes"."last_liked_at" >= NOW() - INTERVAL \'24 hours\')'
-            ),
-            'likesCount',
-          ],
-          [
-            sequelize.literal(
-              '(SELECT COUNT(*) FROM "views" WHERE "views"."prompt_id" = "Prompt"."id" AND "views"."last_viewed_at" >= NOW() - INTERVAL \'24 hours\')'
-            ),
-            'viewCount',
-          ],
-        ],
-      },
-    });
-  }
-
-  async findMine(userId) {
-    return Prompt.findAll({
-      where: { userId },
-      include: [{ model: Tag, through: { attributes: [] } }],
-      order: [['createdAt', 'DESC']],
-      attributes: {
-        include: [
-          [
-            sequelize.literal(
-              '(SELECT COUNT(*) FROM "likes" WHERE "likes"."prompt_id" = "Prompt"."id" AND "likes"."last_liked_at" >= NOW() - INTERVAL \'24 hours\')'
-            ),
-            'likesCount',
-          ],
-          [
-            sequelize.literal(
-              '(SELECT COUNT(*) FROM "views" WHERE "views"."prompt_id" = "Prompt"."id" AND "views"."last_viewed_at" >= NOW() - INTERVAL \'24 hours\')'
-            ),
-            'viewCount',
-          ],
-        ],
-      },
-    });
-  }
-
-  async updateOwned(id, userId, data) {
-    const prompt = await Prompt.findOne({ where: { id } });
-    if (!prompt) return null;
-    if (prompt.userId !== userId) return 'forbidden';
-    return prompt.update(data);
-  }
-
-  async create(userId, data) {
-    return Prompt.create({ ...data, userId });
-  }
-
-  async deleteOwned(id, userId) {
-    const prompt = await Prompt.findOne({ where: { id } });
-    if (!prompt) return null;
-    if (prompt.userId !== userId) return 'forbidden';
-    await prompt.destroy();
+    await prompt.update(data);
     return prompt;
   }
 
-  // Upsert tags and set associations for a prompt
-  async upsertTagsForPrompt(promptId, tagNames = []) {
-    const prompt = await Prompt.findByPk(promptId);
-    if (!prompt) return null;
-
-    if (!Array.isArray(tagNames) || tagNames.length === 0) {
-      await prompt.setTags([]);
-      return prompt;
-    }
-
-  const normalized = tagNames.map((t) => String(t).trim().toLowerCase()).filter(Boolean);
-    const tags = await Promise.all(
-      normalized.map(async (name) => {
-        const [tag] = await Tag.findOrCreate({ where: { name } });
-        return tag;
-      })
-    );
-    await prompt.setTags(tags);
-    return prompt;
-  }
-
-  async findPopular(limit = 10) {
-    const limitValue = parseInt(limit, 10) || 10;
-    return Prompt.findAll({
-      where: { isPublic: true },
-      include: [
-        { model: User, attributes: ['id', 'username', 'email'] },
-        { model: Tag, through: { attributes: [] } },
-      ],
-      attributes: {
-        include: [
-          [
-            sequelize.literal(
-              '(SELECT COUNT(*) FROM "likes" WHERE "likes"."prompt_id" = "Prompt"."id" AND "likes"."last_liked_at" >= NOW() - INTERVAL \'24 hours\')'
-            ),
-            'likesCount',
-          ],
-          [
-            sequelize.literal(
-              '(SELECT COUNT(*) FROM "views" WHERE "views"."prompt_id" = "Prompt"."id" AND "views"."last_viewed_at" >= NOW() - INTERVAL \'24 hours\')'
-            ),
-            'viewCount',
-          ],
-        ],
-      },
-      order: [['views', 'DESC']],
-      limit: limitValue,
-    });
+  /**
+   *
+   * @param {*} id
+   * @returns
+   */
+  async deletePrompt(id) {
+    const deletedCount = await Prompt.destroy({ where: { id } });
+    return deletedCount > 0;
   }
 }
 

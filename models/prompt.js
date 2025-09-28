@@ -1,22 +1,21 @@
-'use strict';
+"use strict";
 
-const { Model } = require('sequelize');
+const { Model } = require("sequelize");
 
 module.exports = (sequelize, DataTypes) => {
   class Prompt extends Model {
-     
     static associate(models) {
       // Relation: un Prompt appartient à un User
-      Prompt.belongsTo(models.User, { foreignKey: 'userId' });
+      Prompt.belongsTo(models.User, { foreignKey: "userId" });
       // N:N avec Tag via table de jointure prompt_tags
       Prompt.belongsToMany(models.Tag, {
-        through: 'prompt_tags',
-        foreignKey: 'prompt_id',
-        otherKey: 'tag_id',
+        through: "prompt_tags",
+        foreignKey: "prompt_id",
+        otherKey: "tag_id",
       });
       // Relations avec Likes et Views
-      Prompt.hasMany(models.Like, { foreignKey: 'promptId' });
-      Prompt.hasMany(models.View, { foreignKey: 'promptId' });
+      Prompt.hasMany(models.Like, { foreignKey: "promptId" });
+      Prompt.hasMany(models.View, { foreignKey: "promptId" });
     }
   }
 
@@ -34,38 +33,38 @@ module.exports = (sequelize, DataTypes) => {
       },
       content: {
         type: DataTypes.TEXT,
-  allowNull: true,
+        allowNull: true,
       },
       contentType: {
-        type: DataTypes.ENUM('text', 'pdf'),
+        type: DataTypes.ENUM("text", "pdf"),
         allowNull: false,
-        defaultValue: 'text',
-        field: 'content_type',
+        defaultValue: "text",
+        field: "content_type",
       },
       pdfFilePath: {
         type: DataTypes.STRING,
         allowNull: true,
-        field: 'pdf_file_path',
+        field: "pdf_file_path",
       },
       pdfFileSize: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        field: 'pdf_file_size',
+        field: "pdf_file_size",
       },
       pdfOriginalName: {
         type: DataTypes.STRING,
         allowNull: true,
-        field: 'pdf_original_name',
+        field: "pdf_original_name",
       },
-  imageUrl: {
+      imageUrl: {
         type: DataTypes.STRING,
         allowNull: true,
-        field: 'image_url',
+        field: "image_url",
       },
       isPublic: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
-        field: 'is_public',
+        field: "is_public",
       },
       views: {
         type: DataTypes.INTEGER,
@@ -74,25 +73,35 @@ module.exports = (sequelize, DataTypes) => {
       userId: {
         type: DataTypes.UUID,
         allowNull: false,
-        field: 'user_id',
+        field: "user_id",
+      },
+      hash: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
       },
     },
     {
       sequelize,
-      modelName: 'Prompt',
-      tableName: 'prompts',
+      modelName: "Prompt",
+      tableName: "prompts",
       validate: {
         contentConsistency() {
           // If content is text, it must be provided
-          if (this.contentType === 'text') {
+          if (this.contentType === "text") {
             if (!this.content || String(this.content).trim().length === 0) {
-              throw new Error('content is required when contentType is text');
+              throw new Error("content is required when contentType is text");
             }
           }
           // If content is pdf, a pdf file path must be provided
-          if (this.contentType === 'pdf') {
-            if (!this.pdfFilePath || String(this.pdfFilePath).trim().length === 0) {
-              throw new Error('pdfFilePath is required when contentType is pdf');
+          if (this.contentType === "pdf") {
+            if (
+              !this.pdfFilePath ||
+              String(this.pdfFilePath).trim().length === 0
+            ) {
+              throw new Error(
+                "pdfFilePath is required when contentType is pdf"
+              );
             }
           }
         },
