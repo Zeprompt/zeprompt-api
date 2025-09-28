@@ -25,10 +25,11 @@ class CacheService {
    */
   static async set(key, value, ttl = null) {
     try {
+      const stringifyValue = JSON.stringify(value);
       if (ttl) {
-        await redisClient.set(key, value, "EX", ttl);
+        await redisClient.set(key, stringifyValue, "EX", ttl);
       } else {
-        await redisClient.set(key, value);
+        await redisClient.set(key, stringifyValue);
       }
     } catch (error) {
       logger.error(`Redis SET error for key ${key} : `, error);
@@ -67,4 +68,4 @@ class CacheService {
   }
 }
 
-module.exports = new CacheService();
+module.exports = CacheService;

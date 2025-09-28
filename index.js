@@ -1,5 +1,6 @@
 require("dotenv").config();
 require("./workers/emailWorker");
+const http = require("http");
 
 const express = require("express");
 const cors = require("cors");
@@ -14,6 +15,7 @@ const promptRoutes = require("./modules/prompts/prompt.routes");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
 const errorHandler = require("./middleware/errorHandler");
+const { initSocket } = require("./config/socket");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -24,12 +26,18 @@ app.use(express.json());
 // Sécurité HTTP avec Helmet
 setupHelmet(app);
 setupRateLimit(app);
+const server = http.createServer(app);
+initSocket(server);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/tags", tagRoutes);
 app.use("/api/prompts", promptRoutes);
 // Swagger UI
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
+app.use(
+  "/api/docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, { explorer: true })
+);
 
 /**
  * @openapi
@@ -96,6 +104,6 @@ process.on("unhandledRejection", (reason, promise) => {
   logger.error("❌ Unhandled Rejection at:", promise, "reason:", reason);
 });
 
-app.listen(port, () => {
+server.listen(port, () => {
   logger.info(`🚀 API démarrée sur http://localhost:${port}`);
 });
