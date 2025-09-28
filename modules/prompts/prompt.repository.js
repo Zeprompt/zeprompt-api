@@ -1,4 +1,4 @@
-const { fn, col } = require("sequelize");
+const { fn, col, Op } = require("sequelize");
 const { Prompt, User, Tag, Like, View } = require("../../models");
 const AppError = require("../../utils/appError");
 
@@ -55,9 +55,28 @@ class PromptRepository {
     return prompt;
   }
 
-  async getAllPrompts({ page = 1, limit = 20 }) {
+  /**
+   * 
+   * @param {*} param0 
+   * @returns 
+   */
+  async getAllPrompts({ page = 1, limit = 20, currentUser }) {
     const offset = (page - 1) * limit;
+
+    let whereCondition;
+
+    if (!currentUser) {
+      whereCondition = { isPublic: true };
+    } else if (currentUser.role === "admin") {
+      whereCondition = {};
+    } else {
+      whereCondition = {
+        [Op.or]: [{ isPublic: true }, { userId: currentUser.id }],
+      };
+    }
+
     const { rows, count } = await Prompt.findAndCountAll({
+      where: whereCondition,
       offset,
       limit,
       order: [["createdAt", "DESC"]],

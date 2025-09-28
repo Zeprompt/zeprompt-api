@@ -48,17 +48,36 @@ class PromptController {
     }
   }
 
-  async getAllPrompts(req, res, next) {
+  async getAllPublicPrompts(req, res, next) {
     try {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 20;
 
-      const data = await promptService.getAllPrompts({ page, limit });
+      const data = await promptService.getAllPublicPrompts({ page, limit });
       new AppResponse({
         message: "Prompts récupéré avec succès.",
         statusCode: 200,
         data: data,
         code: "PROMPTS_RETUNED",
+        success: true,
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getAllPromptsForAdmin(req, res, next) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 20;
+      const user = req.user;
+
+      const data = await promptService.getAllPrompts({ page, limit, user });
+      new AppResponse({
+        message: "Prompts récupéré avec succès.",
+        statusCode: 200,
+        data: data,
+        code: "PROMPTS_RETURNED",
         success: true,
       }).send(res);
     } catch (error) {

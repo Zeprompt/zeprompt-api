@@ -21,6 +21,9 @@ router.post(
 router.get("/", (req, res, next) =>
   promptController.getAllPrompts(req, res, next)
 );
+router.get("/admin", AuthMiddleware.authenticate, (req, res, next) =>
+  promptController.getAllPromptsForAdmin(req, res, next)
+);
 router.get("/:id", (req, res, next) =>
   promptController.getPromptById(req, res, next)
 );

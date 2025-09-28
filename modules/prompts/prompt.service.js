@@ -86,12 +86,31 @@ class PromptService {
     return prompt;
   }
 
+  async getAllPrompts({ page = 1, limit = 20, currentUser }) {
+    const prompts = await promptRepository.getAllPrompts({
+      page,
+      limit,
+      currentUser,
+    });
+
+    if (!prompts) {
+      throw new AppError({
+        message: "Aucun prompts n'a été trouvé.",
+        userMessage: "Aucun prompts n'a été trouvée.",
+        statusCode: 404,
+        errorCode: "PROMPTS_NOT_FOUNFD",
+      });
+    }
+
+    return prompts;
+  }
+
   /**
    *
    * @param {*} params
    * @returns
    */
-  async getAllPrompts({ page = 1, limit = 20 }) {
+  async getAllPublicPrompts({ page = 1, limit = 20 }) {
     const cacheKey = `prompts:page_${page}_limit_${limit}`;
 
     const cachedPrompts = await CacheService.get(cacheKey);
