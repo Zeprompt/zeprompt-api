@@ -4,194 +4,145 @@ const EmailVerificationService = require("../../services/emailVerificationServic
 const { generateToken } = require("../../utils/jwt");
 const emailQueue = require("../../queues/emailQueue");
 const generateResetPasswordEmailTemplate = require("../../templates/resentPasswordEmail");
-const AppError = require("../../utils/appError");
 const CacheService = require("../../services/cacheService");
+const Errors = require("./auth.errors");
 
+/**
+ * Service d'authentification
+ * ---------------------------
+ * Gère toutes les opérations liées à l'authentification et à la gestion des utilisateurs :
+ * - Inscription et connexion
+ * - Vérification d'email
+ * - Réinitialisation de mot de passe
+ * - Gestion du profil utilisateur
+ * - Activation/désactivation et suppression/restauration de comptes
+ */
 class AuthService {
-  // Inscription
-  async register(data) {
-    const { email, username, password } = data;
+  /**
+   * Formate un utilisateur avant de le retourner au client
+   * @param {Object} user - Objet utilisateur brut venant de la base de données
+   * @returns {Object} - Utilisateur formaté sans les informations sensibles (ex: mot de passe)
+   */
+  _formateUser(user) {
+    return {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      role: user.role,
+      emailVerified: user.emailVerified,
+      avatar: user.avatar || null,
+      bio: user.bio || null,
+    };
+  }
 
+  /**
+   * Vérifie si l'email est disponible avant la création d'un compte
+   * @param {string} email - Email à vérifier
+   * @throws {Error} - Si l'email est déjà utilisé
+   */
+  async _ensureEmailIsAvailable(email) {
     const existingUser = await userService.getUserByEmail(email);
-    if (existingUser) {
-      throw new AppError({
-        message: "Email already in use",
-        statusCode: 409,
-        errorCode: "EMAIL_IN_USE",
-        userMessage: "Cet email est déjà utilisé.",
-      });
-    }
+    if (existingUser) throw Errors.emailAlreadyUsed();
+  }
 
-    const hashedPassword = await hashPassword(password);
-    const user = await userService.createUser({
+  /**
+   * Crée un nouvel utilisateur en base de données
+   * @param {Object} param0 - Contient email, username et mot de passe hashé
+   * @returns {Object} - L'utilisateur nouvellement créé
+   */
+  async _createNewUser({ email, username, hashedPassword }) {
+    return await userService.createUser({
       email,
       username,
       password: hashedPassword,
       emailVerified: false,
     });
+  }
 
+  /**
+   * Envoie un email de vérification à l'utilisateur
+   * @param {Object} user - Utilisateur cible
+   * @returns {Promise} - Résultat de l'envoi d'email
+   */
+  async _sendVerficationEmail(user) {
     const testMode = process.env.NODE_ENV !== "production";
-    const emailResult = await EmailVerificationService.sendVerificationEmail(
-      user,
-      testMode
-    );
-
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        username: user.username,
-        emailVerified: user.emailVerified,
-      },
-      emailResult,
-    };
+    return await EmailVerificationService.sendVerificationEmail(user, testMode);
   }
 
-  // Connexion
-  async login(data) {
-    const { email, password } = data;
-
+  /**
+   * Recherche un utilisateur par email et lance une erreur si non trouvé
+   * @param {string} email - Email à rechercher
+   * @throws {Error} - Si l'utilisateur n'existe pas
+   */
+  async _findUserByEmailOrThrow(email) {
     const user = await userService.getUserByEmail(email);
-    if (!user) {
-      throw new AppError({
-        message: "Email non trouvé",
-        statusCode: 401,
-        errorCode: "INVALID_EMAIL",
-        userMessage: "Aucun utilisateur avec cet email.",
-      });
-    }
-
-    // Vérifie status du compte
-    await this.checkUserStatus(user);
-
-    if (!user.emailVerified) {
-      throw new AppError({
-        message: "Email not verified",
-        statusCode: 403,
-        errorCode: "EMAIL_NOT_VERIFIED",
-        userMessage: "Veuillez vérifier votre email avant de vous connecter.",
-      });
-    }
-
-    const isPasswordValid = await comparePassword(password, user.password);
-    if (!isPasswordValid) {
-      throw new AppError({
-        message: "Invalid email or password",
-        statusCode: 401,
-        errorCode: "INVALID_CREDENTIALS",
-        userMessage: "Email ou mot de passe incorrect.",
-      });
-    }
-
-    const token = generateToken(user);
-
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        role: user.role,
-        emailVerified: user.emailVerified,
-      },
-      token,
-    };
+    if (!user) throw Errors.userNotFound();
+    return user;
   }
 
-  // Vérifier le token qui a été envoyé par email
-  async verifyEmail(token, email) {
-    if (!token || !email) {
-      throw new AppError({
-        message: "Token et email requis",
-        statusCode: 400,
-        errorCode: "TOKEN_REQUIRED",
-        userMessage: "Token et email requis.",
-      });
-    }
-
-    // Vérifier si le token est valide
-    const result = await EmailVerificationService.verifyEmailToken(
-      token,
-      email
-    );
-
-    if (!result.success) {
-      throw new AppError({
-        message: "Vérification échouée.",
-        statusCode: 403,
-        errorCode: "VERIFICATION_FAILD",
-        userMessage: "Vérification échouée.",
-      });
-    }
-
-    return {
-      message: result.message,
-      user: {
-        id: result.user.id,
-        email: result.user.email,
-        username: result.user.username,
-        role: result.user.role,
-        emailVerified: result.user.emailVerified,
-      },
-    };
+  /**
+   * Recherche un utilisateur par ID et lance une erreur si non trouvé
+   * @param {string} userId - ID de l'utilisateur
+   * @returns {Object} - Utilisateur trouvé
+   * @throws {Error} - Si l'utilisateur n'existe pas
+   */
+  async _findUserByIdOrThrow(userId) {
+    const user = await userService.getUserById(userId);
+    if (!user) throw Errors.userNotFound();
+    return user;
   }
 
-  // Renvoyer un mail de confirmation
-  async resendVerificationEmail(email) {
-    const user = await userService.getUserByEmail(email);
-    if (!user) {
-      throw new AppError({
-        message: "Utilisateur non trouvé.",
-        statusCode: 404,
-        errorCode: "USER_NOT_FOUND",
-        userMessage: "Utilisateur non trouvé.",
-      });
-    }
-
-    // Vérifie si l'email est déjà validé
-    if (user.emailVerified) {
-      throw new AppError({
-        message: "Email déjà vérifié.",
-        statusCde: 400,
-        errorCode: "EMAIL_VERIFIED",
-        userMessage: "Email déjà vérifié.",
-      });
-    }
-
-    // Envoi dans la queue
-    const testMode = process.env.NODE_ENV !== "production";
-    const emailResult = await EmailVerificationService.sendVerificationEmail(
-      user,
-      testMode
-    );
-
-    return {
-      message: "Email de vérification renvoyé.",
-      emailResult,
-    };
+  /**
+   * Vérifie si le compte utilisateur est actif et non supprimé
+   * @param {Object} user - Utilisateur
+   * @throws {Error} - Si le compte est désactivé ou supprimé
+   */
+  async _checkUserStatus(user) {
+    if (!user.active) throw Errors.userDeactivated();
+    if (user.deletedAt) throw Errors.userDeleted();
   }
 
-  // Demander le changement d'un mot de passe
-  async requestPasswordReset(email) {
-    const user = await userService.getUserByEmail(email);
-    if (!user) {
-      throw new AppError({
-        message: "Utilisateur non trouvé.",
-        userMessage: "Utilisateur non trouvé",
-        statusCode: 404,
-        errorCode: "USER_NOT_FOUND",
-      });
-    }
+  /**
+   * Génère un token JWT pour un utilisateur donné
+   * @param {Object} user - Utilisateur
+   * @returns {string} - JWT signé
+   */
+  _generateJWT(user) {
+    return generateToken(user);
+  }
 
+  /**
+   * Génère un token pour la réinitialisation du mot de passe
+   * et le stocke dans Redis avec une durée de validité
+   * @param {string} email - Email de l'utilisateur
+   * @returns {string} - Token généré
+   */
+  async _generateResetToken(email) {
     const resetToken = EmailVerificationService.generateVerificationToken();
-    const redisKey = `password_reset:${user.email}`;
-    await CacheService.set(redisKey, resetToken, 3600)
+    const redisKey = `password_reset:${email}`;
+    await CacheService.set(redisKey, resetToken, 3600); // Expire en 1h
+    return resetToken;
+  }
 
+  /**
+   * Construit l'URL de réinitialisation de mot de passe
+   * @param {string} email - Email de l'utilisateur
+   * @param {string} token - Token de réinitialisation
+   * @returns {string} - URL complète
+   */
+  _buildResetUrl(email, token) {
     const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-    const resetUrl = `${baseUrl}/api/auth/verify-password-reset-token?token=${resetToken}&email=${encodeURIComponent(
-      user.email
+    return `${baseUrl}/api/auth/verify-password-reset-token?token=${token}&email=${encodeURIComponent(
+      email
     )}`;
+  }
 
+  /**
+   * Ajoute un email de réinitialisation de mot de passe à la queue pour envoi
+   * @param {Object} user - Utilisateur cible
+   * @param {string} resetUrl - URL de réinitialisation
+   */
+  async _queueResetPasswordEmail(user, resetUrl) {
     const htmlContent = generateResetPasswordEmailTemplate({
       user: {
         username: user.username,
@@ -200,8 +151,8 @@ class AuthService {
       resetUrl,
     });
 
-    // Détecte si on est en mode test
     const testMode = process.env.NODE_ENV !== "production";
+
     await emailQueue.add(
       "sendPasswordResetEmail",
       {
@@ -217,230 +168,232 @@ class AuthService {
         backoff: { type: "exponential", delay: 60000 },
       }
     );
+  }
 
+  /**
+   * Filtre les champs autorisés pour la mise à jour du profil
+   * @param {Object} data - Données à filtrer
+   * @param {Array<string>} allowedFields - Champs autorisés
+   * @returns {Object} - Données filtrées
+   */
+  _filterAllowedFields(data, allowedFields) {
+    return Object.keys(data)
+      .filter((key) => allowedFields.includes(key))
+      .reduce((obj, key) => {
+        obj[key] = data[key];
+        return obj;
+      }, {});
+  }
+
+  // =============================
+  // MÉTHODES PUBLIQUES
+  // =============================
+
+  /**
+   * Inscription d'un nouvel utilisateur
+   * @param {Object} data - email, username, password
+   * @returns {Object} - Utilisateur et résultat de l'envoi d'email
+   */
+  async register(data) {
+    const { email, username, password } = data;
+    await this._ensureEmailIsAvailable(email);
+    const hashedPassword = await hashPassword(password);
+    const user = await this._createNewUser({ email, username, hashedPassword });
+    const emailResult = await this._sendVerficationEmail(user);
+    return {
+      user: this._formateUser(user),
+      emailResult,
+    };
+  }
+
+  /**
+   * Connexion d'un utilisateur
+   * @param {Object} data - email, password
+   * @returns {Object} - Utilisateur et JWT
+   */
+  async login(data) {
+    const { email, password } = data;
+    const user = await this._findUserByEmailOrThrow(email);
+    await this._checkUserStatus(user);
+    if (!user.emailVerified) throw Errors.emailNotVerified();
+    const isPasswordValid = await comparePassword(password, user.password);
+    if (!isPasswordValid) throw Errors.invalidCredentials();
+    const token = this._generateJWT(user);
+    return {
+      user: this._formateUser(user),
+      token,
+    };
+  }
+
+  /**
+   * Vérification d'un email via le token envoyé
+   * @param {string} token - Token de vérification
+   * @param {string} email - Email de l'utilisateur
+   * @returns {Object} - Message et utilisateur vérifié
+   */
+  async verifyEmail(token, email) {
+    if (!token || !email) throw Errors.tokenRequired();
+    const result = await EmailVerificationService.verifyEmailToken(
+      token,
+      email
+    );
+    if (!result.success) throw Errors.verificationFailed();
+    return {
+      message: result.message,
+      user: this._formateUser(result.user),
+    };
+  }
+
+  /**
+   * Renvoyer un email de vérification à l'utilisateur
+   * @param {string} email - Email de l'utilisateur
+   * @returns {Object} - Message et résultat d'envoi
+   */
+  async resendVerificationEmail(email) {
+    const user = await this._findUserByEmailOrThrow(email);
+    if (user.emailVerified) throw Errors.emailAlreadyVerified();
+    return {
+      message: "Email de vérification renvoyé.",
+      emailResult: await this._sendVerficationEmail(user),
+    };
+  }
+
+  /**
+   * Demander la réinitialisation du mot de passe
+   * @param {string} email - Email de l'utilisateur
+   * @returns {Object} - Message de confirmation
+   */
+  async requestPasswordReset(email) {
+    const user = await this._findUserByEmailOrThrow(email);
+    const resetToken = await this._generateResetToken(user.email);
+    const resetUrl = this._buildResetUrl(user.email, resetToken);
+    await this._queueResetPasswordEmail(user, resetUrl);
     return { message: "Email de réinitialisation envoyé." };
   }
 
-  // Vérifier le token envoyé par email
+  /**
+   * Vérifier la validité du token de réinitialisation
+   * @param {string} token - Token envoyé par email
+   * @param {string} email - Email de l'utilisateur
+   * @returns {Object} - Validation
+   */
   async verifyPasswordResetToken(token, email) {
     const redisKey = `password_reset:${email}`;
     const storedToken = await CacheService.get(redisKey);
-
-    if (!storedToken || storedToken !== token) {
-      throw new AppError({
-        message: "Token invalide ou expiré.",
-        userMessage: "Token invalide ou expiré.",
-        statusCode: 400,
-        errorCode: "INVALID_TOKEN",
-      });
-    }
-
+    if (!storedToken || storedToken !== token) throw Errors.invalidToken();
     return { valid: true, email };
   }
 
-  // Changer le mot de passe d'un compte
+  /**
+   * Réinitialiser le mot de passe
+   * @param {string} token - Token valide
+   * @param {string} email - Email de l'utilisateur
+   * @param {string} newPassword - Nouveau mot de passe
+   * @returns {Object} - Message de confirmation
+   */
   async resetPassword(token, email, newPassword) {
     await this.verifyPasswordResetToken(token, email);
-
     const hashedPassword = await hashPassword(newPassword);
-    const user = await userService.getUserByEmail(email);
-    if (!user) {
-      throw new AppError({
-        message: "Utilisateur non trouvé.",
-        userMessage: "Utilisateur non trouvé.",
-        statusCode: 404,
-        errorCode: "USER_NOT_FOUND",
-      });
-    }
-
+    const user = await this._findUserByEmailOrThrow(email);
     await userService.updateUser(user.id, { password: hashedPassword });
     await CacheService.del(`password_reset:${email}`);
-
     return {
       succes: true,
       message: "Mot de passe mis à jour avec succès.",
     };
   }
 
-  // Désactiver un compte
+  /**
+   * Désactiver un compte utilisateur
+   * @param {string} userId - ID de l'utilisateur
+   * @returns {Object} - Message et utilisateur mis à jour
+   */
   async disableUser(userId) {
-    const user = await userService.getUserById(userId);
-    if (!user.active) {
-      throw new AppError({
-        message: "Utilisateur déjà désactivé.",
-        userMessage: "Utilisateur déjà désactivé.",
-        statusCode: 400,
-        errorCode: "USER_ALREADY_DEACTIVATE",
-      });
-    }
-
+    const user = await this._findUserByIdOrThrow(userId);
+    if (!user.active) throw Errors.userAlreadyDeactivated();
     const updatedUser = await userService.updateUser(userId, { active: false });
     return {
       message: "Compte désactivé avec succès",
-      user: {
-        id: updatedUser.id,
-        role: updatedUser.role,
-        email: updatedUser.email,
-        username: updatedUser.username,
-        emailVerified: updatedUser.emailVerified,
-      },
+      user: this._formateUser(updatedUser),
     };
   }
 
-  // Réactiver un compte
+  /**
+   * Réactiver un compte utilisateur
+   * @param {string} userId - ID de l'utilisateur
+   * @returns {Object} - Message et utilisateur mis à jour
+   */
   async enableUser(userId) {
-    const user = await userService.updateUser(userId, { active: true });
-
-    if (user.active) {
-      throw new AppError({
-        message: "Utilisateur déjà actif.",
-        userMessage: "Utilisateur déjà actif.",
-        statusCode: 400,
-        errorCode: "USER_ALREADY_ACTIVE",
-      });
-    }
-
+    const user = await this._findUserByIdOrThrow(userId);
+    if (user.active) throw Errors.userAlreadyActivate();
+    const updatedUser = await userService.updateUser(userId, { active: true });
     return {
-      message: "Compte réactivé avec succès",
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        username: user.username,
-        emailVerified: user.emailVerified,
-      },
+      message: "Compte réactivé avec succès.",
+      user: this._formateUser(updatedUser),
     };
   }
 
-  // Soft delete (marqer comme supprimé)
+  /**
+   * Supprimer un compte (soft delete)
+   * @param {string} userId - ID de l'utilisateur
+   * @returns {Object} - Message et utilisateur mis à jour
+   */
   async softDeleteUser(userId) {
-    const user = await userService.getUserById(userId);
-
-    if (user.deletedAt) {
-      throw new AppError({
-        message: "Utilisateur déjà supprimé.",
-        userMessage: "Utilisateur déjà supprimé.",
-        statusCode: 400,
-        errorCode: "USER_ALREADY_DELETE",
-      });
-    }
-
+    const user = await this._findUserByIdOrThrow(userId);
+    if (user.deletedAt) throw Errors.userAlreadyDeleted();
     const deletedUser = await userService.updateUser(userId, {
       deletedAt: new Date(),
     });
     return {
       message: "Compte supprimé (soft delete)",
-      user: {
-        id: deletedUser.id,
-        role: deletedUser.role,
-        email: deletedUser.email,
-        username: deletedUser.username,
-        emailVerified: deletedUser.emailVerified,
-      },
+      user: this._formateUser(deletedUser),
     };
   }
 
-  // Restaurer un compte supprimé
+  /**
+   * Restaurer un compte supprimé
+   * @param {string} userId - ID de l'utilisateur
+   * @returns {Object} - Message et utilisateur restauré
+   */
   async restoreUser(userId) {
-    const user = await userService.updateUser(userId, { deletedAt: null });
-
-    if (!user.deletedAt) {
-      throw new AppError({
-        message: "Utilisateur non supprimé.",
-        userMessage: "Utilisateur non supprimé.",
-        statusCode: 400,
-        errorCode: "USER_NOT_DELETE",
-      });
-    }
-
+    const user = await this._findUserByIdOrThrow(userId);
+    if (!user.deletedAt) throw Errors.userNotDeleted();
+    const restoredUser = await userService.updateUser(userId, {
+      deletedAt: null,
+    });
     return {
-      message: "Compte restauré",
-      user: {
-        id: user.id,
-        role: user.role,
-        email: user.email,
-        username: user.username,
-        emailVerified: user.emailVerified,
-      },
+      message: "Compte restauré avec succès.",
+      user: this._formateUser(restoredUser),
     };
   }
 
-  // Vérifier avant connexion
-  async checkUserStatus(user) {
-    if (!user.active) {
-      throw new AppError({
-        message: "Compte désactivée.",
-        userMessage: "Votre compte est désactivé. Contactez l'administration.",
-        statusCode: 400,
-        errorCode: "USER_DELETED",
-      });
-    }
-
-    if (user.deletedAt) {
-      throw new AppError({
-        message: "Ce compte a été supprimé.",
-        userMessage: "Ce compte a été supprimé.",
-        statusCode: "403",
-        errorCode: "ACCESS_REQUIRED",
-      });
-    }
-
-    return true;
-  }
-
+  /**
+   * Récupérer le profil d'un utilisateur
+   * @param {string} userId - ID de l'utilisateur
+   * @returns {Object} - Profil de l'utilisateur
+   */
   async getUserProfile(userId) {
-    const user = await userService.getUserById(userId);
-
-    if (!user) {
-      throw new AppError({
-        message: "Utilisateur non trouvé.",
-        userMessage: "Utilisateur non trouvé.",
-        statusCode: 404,
-        errorCode: "USER_NOT_FOUND",
-      });
-    }
-
+    const user = await this._findUserByIdOrThrow(userId);
     return {
-      message: "Profile récupéré avec succès",
-      user: {
-        id: user.id,
-        role: user.role,
-        email: user.email,
-        username: user.username,
-      },
+      message: "Profile récupéré avec succès.",
+      user: this._formateUser(user),
     };
   }
 
+  /**
+   * Mettre à jour le profil d'un utilisateur
+   * @param {string} userId - ID de l'utilisateur
+   * @param {Object} updateData - Données à mettre à jour
+   * @returns {Object} - Message et profil mis à jour
+   */
   async updateUserProfile(userId, updateData) {
     const allowedFields = ["username", "email", "avatar", "bio"];
-    const dataToUpdate = {};
-
-    for (const key of allowedFields) {
-      if (updateData[key] !== undefined) {
-        dataToUpdate[key] = updateData[key];
-      }
-    }
-
+    const dataToUpdate = this._filterAllowedFields(updateData, allowedFields);
     const updatedUser = await userService.updateUser(userId, dataToUpdate);
-
-    if (!updatedUser) {
-      throw new AppError({
-        message: "Mise à jour impossible.",
-        userMessage: "Mise à jour impossible.",
-        statusCode: 400,
-        errorCode: "IMPOSSIBLE_TO_UPDATE",
-      });
-    }
-
+    if (!updatedUser) throw Errors.updateFailed();
     return {
       message: "Profile mis à jour avec succès.",
-      user: {
-        id: updatedUser.id,
-        email: updatedUser.email,
-        username: updatedUser.username,
-        avatar: updatedUser?.avatar,
-        bio: updatedUser?.bio,
-      },
+      user: this._formateUser(updatedUser),
     };
   }
 }

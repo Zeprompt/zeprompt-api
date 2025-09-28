@@ -33,7 +33,7 @@ router.post("/reset-password", (req, res, next) => {
   authController.resetPassword(req, res, next);
 });
 router.put(
-  "/disabled/:userId",
+  "/users/:userId/disabled",
   AuthMiddleware.authenticate,
   AuthMiddleware.isAdmin,
   (req, res, next) => {
@@ -41,7 +41,7 @@ router.put(
   }
 );
 router.put(
-  "/enable/:userId",
+  "/users/:userId/enable",
   AuthMiddleware.authenticate,
   AuthMiddleware.isAdmin,
   (req, res, next) => {
@@ -49,7 +49,7 @@ router.put(
   }
 );
 router.delete(
-  "/soft-delete/:userId",
+  "/users/:userId/soft-delete",
   AuthMiddleware.authenticate,
   AuthMiddleware.isAdmin,
   (req, res, next) => {
@@ -57,7 +57,7 @@ router.delete(
   }
 );
 router.put(
-  "/restore/:userId",
+  "/users/:userId/restore",
   AuthMiddleware.authenticate,
   (req, res, next) => {
     authController.restoreUser(req, res, next);
