@@ -1,63 +1,124 @@
-const likeRepository = require('./like.repository');
-const promptRepository = require('../prompts/prompt.repository');
+const likeRepository = require("./like.repository");
+const redisClient = require("../../config/redis");
+const { getIO } = require("../../config/socket");
+const Errors = require("./like.errors");
+const { sequelize } = require("../../models");
 
 class LikeService {
-  // Process a like request from a user or anonymous visitor
+  // --- Méthodes privées Redis ---
+  async _hasUserLiked(promptId, identifier) {
+    const key = `prompt:likes:${promptId}`;
+    const result = await redisClient.sismember(key, identifier);
+    return result === 1;
+  }
+
+  async _addUserLikeCache(promptId, identifier) {
+    const setKey = `prompt:likes:${promptId}`;
+    const countKey = `prompt:likes:count:${promptId}`;
+    const ttlSeconds = 30 * 60 * 60 * 1000;
+
+    const pipeline = redisClient.pipeline();
+    pipeline.sadd(setKey, identifier);
+    pipeline.incr(countKey);
+    pipeline.expire(setKey, ttlSeconds);
+    pipeline.expire(countKey, ttlSeconds);
+    await pipeline.exec();
+  }
+
+  async _removeUserLikeCache(promptId, identifier) {
+    const setKey = `prompt:likes:${promptId}`;
+    const countKey = `prompt:likes:count:${promptId}`;
+    const ttlSeconds = 30 * 60 * 60 * 1000;
+
+    const pipeline = redisClient.pipeline();
+    pipeline.srem(setKey, identifier);
+    pipeline.decr(countKey);
+    pipeline.expire(setKey, ttlSeconds);
+    pipeline.expire(countKey, ttlSeconds);
+
+    await pipeline.exec();
+  }
+
+  async _getLikeCountCache(promptId) {
+    const countKey = `prompt:likes:count:${promptId}`;
+    const value = await redisClient.get(countKey);
+    return value ? parseInt(value, 10) : 0;
+  }
+
+  _getIdentifier(user, anonymousId) {
+    return user ? `user_${user.id}` : `anon_${anonymousId}`;
+  }
+
+  async _broadcastLikeUpdate(promptId) {
+    const newCount = await this._getLikeCountCache(promptId);
+    getIO().emit("prompt:likeUpdated", { promptId, likes: newCount });
+    return newCount;
+  }
+
+  // --- Méthodes publiques ---
   async likePrompt(promptId, user = null, anonymousId = null) {
-    // Verify prompt exists
-    const prompt = await promptRepository.findById(promptId);
-    if (!prompt) {
-      throw new Error('Prompt not found');
+    const identifier = this._getIdentifier(user, anonymousId);
+
+    if (await this._hasUserLiked(promptId, identifier))
+      throw Errors.alreadyLiked();
+
+    const transaction = await sequelize.transaction();
+    try {
+      // DB comme source de vérité
+      await likeRepository.createLike(
+        promptId,
+        {
+          userId: user?.id || null,
+          anonymousId: user ? null : anonymousId,
+        },
+        { transaction }
+      );
+
+      // Mise à jour Redis pour compteur rapide
+      await this._addUserLikeCache(promptId, identifier);
+
+      await transaction.commit();
+
+      // WebSocket
+      return this._broadcastLikeUpdate(promptId);
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
     }
-
-    // Create identifier based on authentication status
-    const identifier = user 
-      ? { userId: user.id }
-      : { anonymousId };
-
-    // Check if already liked in last 24h
-    const existingLike = await likeRepository.findExistingLike(promptId, identifier);
-    if (existingLike) {
-      const nextAllowedAt = new Date(existingLike.lastLikedAt.getTime() + 24 * 60 * 60 * 1000);
-      return {
-        error: 'Rate limit exceeded',
-        message: 'You can only like a prompt once every 24 hours',
-        nextLikeAllowedAt: nextAllowedAt,
-        status: 429
-      };
-    }
-
-    // Remove any old likes (> 24h)
-    await likeRepository.removeOldLikes(promptId, identifier);
-
-    // Create the like
-    await likeRepository.createLike(promptId, identifier);
-
-    // Get updated count
-    const likesCount = await likeRepository.countActiveLikes(promptId);
-
-    return {
-      message: 'Prompt liked',
-      liked: true,
-      likesCount,
-      status: 200
-    };
   }
 
-  // Get active likes count for a prompt
+  async dislikePrompt(promptId, user = null, anonymousId = null) {
+    const identifier = this._getIdentifier(user, anonymousId);
+
+    if (!(await this._hasUserLiked(promptId, identifier)))
+      throw Errors.neverLiked();
+
+    const transaction = await sequelize.transaction();
+    try {
+      // DB
+      await likeRepository.removeLike(
+        promptId,
+        {
+          userId: user?.id || null,
+          anonymousId: user ? null : anonymousId,
+        },
+        { transaction }
+      );
+
+      // Redis
+      await this._removeUserLikeCache(promptId, identifier);
+
+      await transaction.commit();
+
+      return this._broadcastLikeUpdate(promptId);
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  }
+
   async getLikesCount(promptId) {
-    // Verify prompt exists
-    const prompt = await promptRepository.findById(promptId);
-    if (!prompt) {
-      throw new Error('Prompt not found');
-    }
-
-    return likeRepository.countActiveLikes(promptId);
-  }
-
-  // Get popular prompts by likes
-  async getPopularByLikes(limit = 10) {
-    return likeRepository.findPopularByLikes(limit);
+    return this._getLikeCountCache(promptId);
   }
 }
 

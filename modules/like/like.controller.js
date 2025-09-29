@@ -1,7 +1,5 @@
-const httpResponse = require('../../utils/httpResponse');
-const likeService = require('./like.service');
-const { verifyToken } = require('../../utils/jwt');
-const logger = require('../../utils/logger');
+const AppResponse = require("../../utils/appResponse");
+const likeService = require("./like.service");
 
 /**
  * @openapi
@@ -10,133 +8,144 @@ const logger = require('../../utils/logger');
  *     LikeResponse:
  *       type: object
  *       properties:
- *         message: { type: string, example: "Prompt liked" }
- *         liked: { type: boolean, example: true }
- *         likesCount: { type: integer, example: 42 }
- */
-
-/**
- * @openapi
+ *         message:
+ *           type: string
+ *           example: "Prompt liké avec succès."
+ *         likesCount:
+ *           type: integer
+ *           example: 42
+ *         liked:
+ *           type: boolean
+ *           example: true
+ *
  * /api/prompts/{id}/like:
  *   post:
- *     summary: Like a prompt (rate limited to once per 24h per user/IP)
- *     tags: [Prompts]
+ *     summary: Liker un prompt
+ *     tags: [Likes]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         schema: { type: string, format: uuid }
+ *         schema:
+ *           type: string
+ *           format: uuid
  *     responses:
- *       200:
- *         description: Prompt liked successfully
+ *       201:
+ *         description: Prompt liké avec succès
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/LikeResponse'
- *       429:
- *         description: Rate limit exceeded (already liked in last 24h)
- * 
- * /api/prompts/{id}/likes:
- *   get:
- *     summary: Get the number of likes for a prompt
- *     tags: [Prompts]
+ *
+ * /api/prompts/{id}/dislike:
+ *   post:
+ *     summary: Dislike/unlike un prompt
+ *     tags: [Likes]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         schema: { type: string, format: uuid }
+ *         schema:
+ *           type: string
+ *           format: uuid
  *     responses:
  *       200:
- *         description: Like count
+ *         description: Prompt unliké avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LikeResponse'
+ *
+ * /api/prompts/{id}/likes:
+ *   get:
+ *     summary: Récupère le nombre de likes d'un prompt
+ *     tags: [Likes]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Nombre de likes récupéré avec succès
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 count: { type: integer, example: 42 }
- * 
- * /api/prompts/popular/likes:
- *   get:
- *     summary: Get the most liked prompts
- *     tags: [Prompts]
- *     parameters:
- *       - in: query
- *         name: limit
- *         schema: { type: integer, example: 10 }
- *     responses:
- *       200:
- *         description: List of popular prompts by likes
+ *                 message:
+ *                   type: string
+ *                   example: "Nombres de likes récupéré avec succès"
+ *                 count:
+ *                   type: integer
+ *                   example: 42
  */
 
 class LikeController {
-  // Like/unlike a prompt
-  async likePrompt(req, res) {
+  _getIdentifier(req) {
+    const { user } = req.user || {};
+    const anonymousId = !user
+      ? req.headers["x-forwarded-for"] ||
+        req.connection?.remoteAddress ||
+        req.socket?.remoteAddress ||
+        req.ip
+      : null;
+    return { user, anonymousId };
+  }
+
+  async likePrompt(req, res, next) {
     try {
       const { id } = req.params;
-      
-      // Get user from token if available
-      let user = null;
-      const authHeader = req.headers.authorization;
-      if (authHeader) {
-        const token = authHeader.split(' ')[1];
-        if (token) {
-          try {
-            user = verifyToken(token);
-          } catch {
-            logger.info('Invalid token, using anonymous mode');
-          }
-        }
-      }
-
-      // Get anonymous ID from IP if user not authenticated
-      const anonymousId = !user ? (
-        req.headers['x-forwarded-for'] ||
-        req.connection.remoteAddress ||
-        req.socket.remoteAddress ||
-        req.ip
-      ) : null;
-
-      const result = await likeService.likePrompt(id, user, anonymousId);
-      
-      // Handle rate limiting response
-      if (result.status === 429) {
-        return res.status(429).json({
-          error: result.error,
-          message: result.message,
-          nextLikeAllowedAt: result.nextLikeAllowedAt
-        });
-      }
-
-      // Success response
-      return httpResponse.sendSuccess(res, 200, 'prompt', 'liked', {
-        message: result.message,
-        liked: result.liked,
-        likesCount: result.likesCount
-      });
+      const { user, anonymousId } = this._getIdentifier(req);
+      const likesCount = await likeService.likePrompt(id, user, anonymousId);
+      new AppResponse({
+        message: "Prompt liké avec succès.",
+        data: { likesCount, liked: true },
+        statusCode: 201,
+        code: "PROMPT_LIKED",
+        success: true,
+      }).send(res);
     } catch (error) {
-      return httpResponse.sendError(res, 500, 'prompt', 'liking', error);
+      next(error);
     }
   }
 
-  // Get likes count for a prompt
-  async getLikesCount(req, res) {
+  async dislikePrompt(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { user, anonymousId } = this._getIdentifier(req);
+      const likesCount = await likeService.dislikePrompt(id, user, anonymousId);
+      new AppResponse({
+        message: "Prompt unliké avec succès.",
+        data: { likesCount, liked: false },
+        statusCode: 200,
+        code: "PROMPT_UNLIKED",
+        success: true,
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getLikesCount(req, res, next) {
     try {
       const { id } = req.params;
       const count = await likeService.getLikesCount(id);
-      return httpResponse.sendSuccess(res, 200, 'prompt likes', 'fetched', { count });
-    } catch (err) {
-      return httpResponse.sendError(res, 500, 'prompt likes', 'fetching', err);
-    }
-  }
-
-  // Get popular prompts (most liked)
-  async getPopularByLikes(req, res) {
-    try {
-      const { limit = 10 } = req.query;
-      const prompts = await likeService.getPopularByLikes(limit);
-      return httpResponse.sendSuccess(res, 200, 'popular prompts', 'fetched', prompts);
-    } catch (err) {
-      return httpResponse.sendError(res, 500, 'popular prompts', 'fetching', err.message);
+      new AppResponse({
+        message: "Nombres de likes récupéré avec succès",
+        data: { count },
+        statusCode: 200,
+        code: "LIKES_COUNTED",
+        success: true,
+      }).send(res);
+    } catch (error) {
+      next(error);
     }
   }
 }
