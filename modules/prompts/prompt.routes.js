@@ -10,6 +10,11 @@ const {
   updatePromptSchema,
 } = require("../../schemas/prompt.schema");
 const likeController = require("../like/like.controller");
+const {
+  createCommentSchema,
+  updateCommentSchema,
+} = require("../../schemas/comment.schema");
+const commentController = require("../comment/comment.controller");
 // const { uploadPDF, handleUploadError } = require("../../middleware/uploadPDF");
 // const { searchSchema } = require("../../schemas/search.schema");
 
@@ -49,6 +54,30 @@ router.post("/:id/dislike", AuthMiddleware.authenticate, (req, res, next) =>
 
 router.get("/:id/likes", (req, res, next) =>
   likeController.getLikesCount(req, res, next)
+);
+
+//---- Route pour les commentaires ----
+router.post(
+  "/:id/comments",
+  AuthMiddleware.authenticate,
+  validate(createCommentSchema),
+  (req, res, next) => commentController.createComment(req, res, next)
+);
+
+router.delete(
+  "/:id/comments/:commentId",
+  AuthMiddleware.authenticate,
+  (req, res, next) => commentController.deleteComment(req, res, next)
+);
+
+router.put(
+  "/:id/comments/:commentId",
+  AuthMiddleware.authenticate,
+  validate(updateCommentSchema)
+);
+
+router.get("/:id/comments", (req, res, next) =>
+  commentController.getCommentsByPrompts(req, res, next)
 );
 
 module.exports = router;

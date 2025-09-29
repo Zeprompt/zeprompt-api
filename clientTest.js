@@ -25,3 +25,7 @@ socket.on("disconnect", (reason) => {
 socket.on("new_prompt_created", (prompt) => {
   logger.info("Nouveau prompt reçu :", prompt);
 });
+
+socket.on("prompt:commentsUpdated", (data) => {
+  logger.info("Comment update: ", data);
+});
