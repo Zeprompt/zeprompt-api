@@ -89,7 +89,7 @@ const likeService = require("./like.service");
 
 class LikeController {
   _getIdentifier(req) {
-    const { user } = req.user || {};
+    const user = req.user || null;
     const anonymousId = !user
       ? req.headers["x-forwarded-for"] ||
         req.connection?.remoteAddress ||
