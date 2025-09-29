@@ -9,6 +9,7 @@ const {
   createPromptSchema,
   updatePromptSchema,
 } = require("../../schemas/prompt.schema");
+const likeController = require("../like/like.controller");
 // const { uploadPDF, handleUploadError } = require("../../middleware/uploadPDF");
 // const { searchSchema } = require("../../schemas/search.schema");
 
@@ -19,7 +20,7 @@ router.post(
   (req, res, next) => promptController.createPrompt(req, res, next)
 );
 router.get("/", (req, res, next) =>
-  promptController.getAllPrompts(req, res, next)
+  promptController.getAllPublicPrompts(req, res, next)
 );
 router.get("/admin", AuthMiddleware.authenticate, (req, res, next) =>
   promptController.getAllPromptsForAdmin(req, res, next)
@@ -35,6 +36,19 @@ router.put(
 );
 router.delete("/:id", AuthMiddleware.authenticate, (req, res, next) =>
   promptController.deletePrompt(req, res, next)
+);
+
+// ---- Routes pour les likes ----
+router.post("/:id/like", AuthMiddleware.authenticate, (req, res, next) =>
+  likeController.likePrompt(req, res, next)
+);
+
+router.post("/:id/dislike", AuthMiddleware.authenticate, (req, res, next) =>
+  likeController.dislikePrompt(req, res, next)
+);
+
+router.get("/:id/likes", (req, res, next) =>
+  likeController.getLikesCount(req, res, next)
 );
 
 module.exports = router;

@@ -91,7 +91,7 @@ class PromptService {
     if (cachedPrompts) return JSON.parse(cachedPrompts);
 
     // Sinon récupère depuis la DB
-    const prompts = await promptRepository.getAllPublicPrompts({ page, limit });
+    const prompts = await promptRepository.getAllPrompts({ page, limit });
 
     // Stocke le résultat dans le cache pour 1h (3600s)
     await CacheService.set(cacheKey, prompts, 3600);

@@ -400,7 +400,10 @@ class AuthController {
       new AppResponse({
         message: data.message,
         statusCode: 200,
-        data: data.user,
+        data: {
+          user: data.user,
+          token: data.token,
+        },
         success: true,
         code: "USER_LOGIN",
       }).send(res);

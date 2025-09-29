@@ -56,11 +56,11 @@ class PromptRepository {
   }
 
   /**
-   * 
-   * @param {*} param0 
-   * @returns 
+   *
+   * @param {*} param0
+   * @returns
    */
-  async getAllPrompts({ page = 1, limit = 20, currentUser }) {
+  async getAllPrompts({ page = 1, limit = 20, currentUser = null }) {
     const offset = (page - 1) * limit;
 
     let whereCondition;
