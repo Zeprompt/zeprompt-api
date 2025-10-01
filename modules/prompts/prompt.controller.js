@@ -74,10 +74,7 @@ const AppResponse = require("../../utils/appResponse");
  *       type: http
  *       scheme: bearer
  *       bearerFormat: JWT
- */
-
-/**
- * @openapi
+ *
  * /api/prompts:
  *   post:
  *     summary: Crée un nouveau prompt
@@ -97,10 +94,7 @@ const AppResponse = require("../../utils/appResponse");
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Prompt'
- */
-
-/**
- * @openapi
+ *
  * /api/prompts/{id}:
  *   get:
  *     summary: Récupère un prompt par son ID
@@ -123,10 +117,54 @@ const AppResponse = require("../../utils/appResponse");
  *               $ref: '#/components/schemas/Prompt'
  *       404:
  *         description: Prompt introuvable
- */
-
-/**
- * @openapi
+ *   put:
+ *     summary: Met à jour un prompt existant
+ *     tags: [Prompts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreatePromptInput'
+ *     responses:
+ *       200:
+ *         description: Prompt mis à jour avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Prompt'
+ *   delete:
+ *     summary: Supprime un prompt
+ *     tags: [Prompts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Prompt supprimé avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *
  * /api/prompts/public:
  *   get:
  *     summary: Récupère tous les prompts publics avec pagination
@@ -151,10 +189,7 @@ const AppResponse = require("../../utils/appResponse");
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Prompt'
- */
-
-/**
- * @openapi
+ *
  * /api/admin/prompts:
  *   get:
  *     summary: Récupère tous les prompts (admin)
@@ -181,63 +216,64 @@ const AppResponse = require("../../utils/appResponse");
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Prompt'
- */
-
-/**
- * @openapi
- * /api/prompts/{id}:
- *   put:
- *     summary: Met à jour un prompt existant
+ *
+ * /api/prompts/search:
+ *   get:
+ *     summary: Recherche et filtre des prompts
  *     tags: [Prompts]
- *     security:
- *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
+ *       - in: query
+ *         name: q
  *         schema:
  *           type: string
- *           format: uuid
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/CreatePromptInput'
- *     responses:
- *       200:
- *         description: Prompt mis à jour avec succès
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Prompt'
- */
-
-/**
- * @openapi
- * /api/prompts/{id}:
- *   delete:
- *     summary: Supprime un prompt
- *     tags: [Prompts]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
+ *         description: Mot-clé à rechercher dans le titre ou le contenu
+ *       - in: query
+ *         name: tags
  *         schema:
  *           type: string
- *           format: uuid
+ *         description: Liste de tags séparés par des virgules pour filtrer
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           enum: [likes, comments, views, date]
+ *         description: Champ pour trier les résultats
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Ordre du tri (ascendant ou descendant)
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
  *     responses:
  *       200:
- *         description: Prompt supprimé avec succès
+ *         description: Résultats de la recherche et filtrage
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 message:
- *                   type: string
+ *                 prompts:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Prompt'
+ *                 total:
+ *                   type: integer
+ *                   description: Nombre total de prompts correspondant aux critères
+ *                 page:
+ *                   type: integer
+ *                 limit:
+ *                   type: integer
  */
 
 class PromptController {
@@ -355,6 +391,29 @@ class PromptController {
         statusCode: 200,
         data: {},
         code: "PROMPT_DELETED",
+        success: true,
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async searchPrompts(req, res, next) {
+    try {
+      const { q, tags, sort, order, page, limit } = req.query;
+      const results = await promptService.searchPrompts({
+        q,
+        tags: tags ? tags.split(",") : [],
+        sort,
+        order,
+        page: parseInt(page) || 1,
+        limit: parseInt(limit) || 20,
+      });
+      new AppResponse({
+        message: "Prompts récupérés avec succès",
+        statusCode: 200,
+        data: results,
+        code: "PROMPT_FETCHED",
         success: true,
       }).send(res);
     } catch (error) {

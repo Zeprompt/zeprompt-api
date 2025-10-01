@@ -24,10 +24,13 @@ router.post(
 router.get("/", (req, res, next) =>
   promptController.getAllPublicPrompts(req, res, next)
 );
+router.get("/search", (req, res, next) =>
+  promptController.searchPrompts(req, res, next)
+);
 router.get("/admin", AuthMiddleware.authenticate, (req, res, next) =>
   promptController.getAllPromptsForAdmin(req, res, next)
 );
-router.get("/:id", (req, res, next) =>
+router.get("/:id", AuthMiddleware.authenticate, (req, res, next) =>
   promptController.getPromptById(req, res, next)
 );
 router.put(

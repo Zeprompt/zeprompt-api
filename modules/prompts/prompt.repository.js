@@ -112,6 +112,65 @@ class PromptRepository {
   async deletePrompt(prompt, options = {}) {
     return prompt.destroy(options);
   }
+
+  async searchPrompts({ q, tags, sort, order = "DESC", page = 1, limit = 20 }) {
+    const where = {};
+
+    // Recherche texte (titre + contenu)
+    if (q) {
+      where[Op.or] = [
+        { title: { [Op.iLike]: `%${q || ""}%` } },
+        { content: { [Op.iLike]: `%${q || ""}%` } },
+      ];
+    }
+
+    // Filtrage par tags
+    const include = [];
+    if (tags.length > 0) {
+      include.push({
+        model: Tag,
+        where: { name: tags },
+        through: { attributes: [] },
+        as: "Tags",
+        require: true,
+      });
+    } else {
+      include.push({
+        model: Tag,
+        through: { attributes: [] },
+        as: "Tags",
+        required: false,
+      });
+    }
+
+    const orderMapping = {
+      likes: ["likes", "count", order],
+      views: ["views", order],
+      comments: ["comments", "count", order],
+      date: ["createdAt", order],
+    };
+
+    // Pagination
+    const offset = (page - 1) * limit;
+    const prompts = await Prompt.findAndCountAll({
+      where,
+      include,
+      limit,
+      offset,
+      order:
+        sort && orderMapping[sort]
+          ? [orderMapping[sort]]
+          : [["createdAt", "desc"]],
+      distinct: true,
+    });
+
+    return {
+      prompts: prompts.rows,
+      total: prompts.count,
+      page,
+      limit,
+    };
+  }
 }
 
 module.exports = new PromptRepository();

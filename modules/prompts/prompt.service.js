@@ -55,15 +55,12 @@ class PromptService {
    * @param {*} id - UUID du prompt
    * @returns Le prompt correspondant
    */
-  async getPromptById(id, { currentUser, anonymousId }) {
+  async getPromptById(id, { user, anonymousId }) {
     this._validateUuid(id);
     return await sequelize.transaction(async (t) => {
-       await viewService.recordView(
-        id,
-        currentUser || null,
-        anonymousId || null,
-        { transaction: t }
-      );
+      await viewService.recordView(id, user || null, anonymousId || null, {
+        transaction: t,
+      });
       const prompt = await promptRepository.findPromptById(id, {
         transaction: t,
       });
@@ -162,6 +159,10 @@ class PromptService {
       await this._invalidateCache();
       return { message: "Prompt supprimé avec succès." };
     });
+  }
+
+  async searchPrompts(params) {
+    return await promptRepository.searchPrompts(params);
   }
 }
 
