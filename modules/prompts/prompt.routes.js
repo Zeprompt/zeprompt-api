@@ -1,8 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const promptController = require("./prompt.controller");
-// const likeController = require("../like/like.controller");
-// const viewController = require("../view/view.controller");
 const validate = require("../../middleware/validate");
 const AuthMiddleware = require("../../middleware/auth");
 const {
@@ -15,8 +13,6 @@ const {
   updateCommentSchema,
 } = require("../../schemas/comment.schema");
 const commentController = require("../comment/comment.controller");
-// const { uploadPDF, handleUploadError } = require("../../middleware/uploadPDF");
-// const { searchSchema } = require("../../schemas/search.schema");
 
 router.post(
   "/",

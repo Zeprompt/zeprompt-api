@@ -9,9 +9,7 @@ module.exports = (sequelize, DataTypes) => {
      */
      
     static associate(models) {
-      // Relations
       User.hasMany(models.Prompt, { foreignKey: 'userId' });
-      // Relations avec Likes et Views
       User.hasMany(models.Like, { foreignKey: 'userId' });
       User.hasMany(models.View, { foreignKey: 'userId' });
     }

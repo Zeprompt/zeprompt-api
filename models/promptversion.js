@@ -2,32 +2,40 @@
 const { Model } = require("sequelize");
 
 module.exports = (sequelize, DataTypes) => {
-  class Prompt extends Model {
+  class PromptVersion extends Model {
     static associate(models) {
-      Prompt.belongsTo(models.User, {
+      PromptVersion.belongsTo(models.Prompt, {
+        foreignKey: "prompt_id",
+        as: "prompt",
+      });
+
+      PromptVersion.belongsTo(models.User, {
         foreignKey: "user_id",
         as: "user",
-      });
-      Prompt.belongsToMany(models.Tag, {
-        through: "prompt_tags",
-        foreignKey: "prompt_id",
-        otherKey: "tag_id",
-      });
-      Prompt.hasMany(models.Like, { foreignKey: "promptId" });
-      Prompt.hasMany(models.View, { foreignKey: "promptId" });
-      Prompt.hasMany(models.PromptVersion, {
-        foreignKey: "prompt_id",
-        as: "versions",
       });
     }
   }
 
-  Prompt.init(
+  PromptVersion.init(
     {
       id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
+      },
+      promptId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        field: "prompt_id",
+      },
+      versionNumber: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      versionDate: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
       },
       title: {
         type: DataTypes.STRING,
@@ -58,16 +66,11 @@ module.exports = (sequelize, DataTypes) => {
       imageUrl: {
         type: DataTypes.STRING,
         field: "image_url",
-        allowNull: true,
       },
       isPublic: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
         field: "is_public",
-      },
-      views: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0,
       },
       userId: {
         type: DataTypes.UUID,
@@ -77,15 +80,14 @@ module.exports = (sequelize, DataTypes) => {
       hash: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true,
       },
     },
     {
       sequelize,
-      modelName: "Prompt",
-      tableName: "prompts",
+      modelName: "PromptVersion",
+      tableName: "prompt_versions",
     }
   );
 
-  return Prompt;
+  return PromptVersion;
 };

@@ -31,7 +31,7 @@ class PromptRepository {
   async findPromptById(id) {
     const prompt = await Prompt.findByPk(id, {
       include: [
-        { model: User, attributes: ["id", "username", "email"] },
+        { model: User, as: "user", attributes: ["id", "username", "email"] },
         { model: Tag, through: { attributes: [] } },
         { model: Like, attributes: [] },
         { model: View, attributes: [] },
@@ -44,7 +44,7 @@ class PromptRepository {
       },
       group: [
         "Prompt.id",
-        "User.id",
+        "user.id",
         "Tags.id",
         "Tags->prompt_tags.prompt_id",
         "Tags->prompt_tags.tag_id",

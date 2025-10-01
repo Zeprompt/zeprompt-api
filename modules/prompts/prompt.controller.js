@@ -129,7 +129,7 @@ const AppResponse = require("../../utils/appResponse");
  * @openapi
  * /api/prompts/public:
  *   get:
- *     summary: Récupère tous les prompts publics (pagination possible)
+ *     summary: Récupère tous les prompts publics avec pagination
  *     tags: [Prompts]
  *     parameters:
  *       - in: query
@@ -187,7 +187,7 @@ const AppResponse = require("../../utils/appResponse");
  * @openapi
  * /api/prompts/{id}:
  *   put:
- *     summary: Met à jour un prompt
+ *     summary: Met à jour un prompt existant
  *     tags: [Prompts]
  *     security:
  *       - bearerAuth: []
@@ -206,7 +206,7 @@ const AppResponse = require("../../utils/appResponse");
  *             $ref: '#/components/schemas/CreatePromptInput'
  *     responses:
  *       200:
- *         description: Prompt mis à jour
+ *         description: Prompt mis à jour avec succès
  *         content:
  *           application/json:
  *             schema:
@@ -231,15 +231,16 @@ const AppResponse = require("../../utils/appResponse");
  *     responses:
  *       200:
  *         description: Prompt supprimé avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
  */
 
 class PromptController {
-  /**
-   *
-   * @param {*} req
-   * @param {*} res
-   * @param {*} next
-   */
   async createPrompt(req, res, next) {
     try {
       const prompt = await promptService.createPrompt({
@@ -258,12 +259,7 @@ class PromptController {
       next(error);
     }
   }
-  /**
-   *
-   * @param {*} req
-   * @param {*} res
-   * @param {*} next
-   */
+
   async getPromptById(req, res, next) {
     try {
       const { id } = req.params;
@@ -287,10 +283,10 @@ class PromptController {
 
       const data = await promptService.getAllPublicPrompts({ page, limit });
       new AppResponse({
-        message: "Prompts récupéré avec succès.",
+        message: "Prompts récupérés avec succès.",
         statusCode: 200,
         data: data,
-        code: "PROMPTS_RETUNED",
+        code: "PROMPTS_RETURNED",
         success: true,
       }).send(res);
     } catch (error) {
@@ -306,7 +302,7 @@ class PromptController {
 
       const data = await promptService.getAllPrompts({ page, limit, user });
       new AppResponse({
-        message: "Prompts récupéré avec succès.",
+        message: "Prompts récupérés avec succès.",
         statusCode: 200,
         data: data,
         code: "PROMPTS_RETURNED",
