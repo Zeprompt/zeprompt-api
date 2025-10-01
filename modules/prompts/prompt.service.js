@@ -58,17 +58,16 @@ class PromptService {
   async getPromptById(id, { currentUser, anonymousId }) {
     this._validateUuid(id);
     return await sequelize.transaction(async (t) => {
-      const prompt = await promptRepository.findPromptById(id, {
-        transaction: t,
-      });
-      this._ensurePromptExists(prompt, id);
-
-      await viewService.recordView(
+       await viewService.recordView(
         id,
         currentUser || null,
         anonymousId || null,
         { transaction: t }
       );
+      const prompt = await promptRepository.findPromptById(id, {
+        transaction: t,
+      });
+      this._ensurePromptExists(prompt, id);
       return prompt;
     });
   }
