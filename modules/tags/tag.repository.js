@@ -1,33 +1,28 @@
-const { Tag } = require('../../models');
+const { Tag } = require("../../models");
 
 class TagRepository {
   async findAll() {
-    return Tag.findAll();
+    return await Tag.findAll();
   }
 
   async findById(id) {
-    return Tag.findByPk(id);
+    return await Tag.findByPk(id);
   }
 
   async findByName(name) {
-    return Tag.findOne({ where: { name } });
+    return await Tag.findOne({ where: { name } });
   }
 
   async create(data) {
-    return Tag.create(data);
+    return await Tag.create(data);
   }
 
-  async update(id, data) {
-    const tag = await this.findById(id);
-    if (!tag) return null;
-    return tag.update(data);
+  async update(tag, data) {
+    return await tag.update(data);
   }
 
-  async delete(id) {
-    const tag = await this.findById(id);
-    if (!tag) return null;
-    await tag.destroy();
-    return tag;
+  async delete(tag) {
+    return await tag.destroy();
   }
 }
 
