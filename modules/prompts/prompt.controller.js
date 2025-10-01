@@ -315,7 +315,10 @@ class PromptController {
       new AppResponse({
         message: "Prompt récupéré avec succès.",
         statusCode: 200,
-        data: { prompt: data },
+        data: {
+          prompt: data.prompt,
+          similarePrompts: data.similarePrompts,
+        },
         code: "PROMPT_RETURNED",
         success: true,
       }).send(res);

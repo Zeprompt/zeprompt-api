@@ -65,7 +65,14 @@ class PromptService {
         transaction: t,
       });
       this._ensurePromptExists(prompt, id);
-      return prompt;
+      const tagsIds = (prompt.Tags || []).map((tag) => tag.id);
+      const similarePrompts = await promptRepository.findSimilarPrompts(
+        prompt.id,
+        tagsIds,
+        3,
+        { transaction: t }
+      );
+      return { prompt, similarePrompts };
     });
   }
 

@@ -1,5 +1,5 @@
 const { fn, col, Op } = require("sequelize");
-const { Prompt, User, Tag, Like, View } = require("../../models");
+const { Prompt, User, Tag, Like, View, sequelize } = require("../../models");
 
 class PromptRepository {
   /**
@@ -54,6 +54,26 @@ class PromptRepository {
     });
 
     return prompt;
+  }
+
+  async findSimilarPrompts(promptId, tagsIds, limit = 3, options = {}) {
+    return await Prompt.findAll({
+      include: [
+        {
+          model: Tag,
+          as: "Tags",
+          where: { id: tagsIds },
+          required: true,
+        },
+      ],
+      where: {
+        id: { [Op.ne]: promptId },
+      },
+      order: sequelize.random(),
+      limit,
+      ...options,
+      distinct: true,
+    });
   }
 
   /**
