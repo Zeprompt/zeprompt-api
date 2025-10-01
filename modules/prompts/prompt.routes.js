@@ -13,6 +13,7 @@ const {
   updateCommentSchema,
 } = require("../../schemas/comment.schema");
 const commentController = require("../comment/comment.controller");
+const promptVersionController = require("../promptVersion/promptVersion.controller");
 
 router.post(
   "/",
@@ -74,6 +75,17 @@ router.put(
 
 router.get("/:id/comments", (req, res, next) =>
   commentController.getCommentsByPrompts(req, res, next)
+);
+
+// ---- Route pour les versions de prompt --------
+router.get("/versions/:id", (req, res, next) =>
+  promptVersionController.getVersionById(req, res, next)
+);
+router.get("/:promptId/versions", (req, res, next) =>
+  promptVersionController.getVersionsByPrompt(req, res, next)
+);
+router.delete("/:promptId/versions/:versionNumber", (req, res, next) =>
+  promptVersionController.deleteVersionByPrompt(req, res, next)
 );
 
 module.exports = router;

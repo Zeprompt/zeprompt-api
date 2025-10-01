@@ -42,4 +42,12 @@ module.exports = {
       statusCode: 404,
       errorCode: `${resource.toUpperCase()}_NOT_FOUND`,
     }),
+
+  forbidden: () =>
+    new AppError({
+      message: "Vous n'avez pas les droits pour effectuer cette action.",
+      userMessage: "Accès refusé.",
+      statusCode: 403,
+      errorCode: "FORBIDDEN",
+    }),
 };
