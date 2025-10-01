@@ -241,6 +241,17 @@ const AppResponse = require("../../utils/appResponse");
  */
 
 class PromptController {
+  _getIdentifier(req) {
+    const user = req.user || null;
+    const anonymousId = !user
+      ? req.headers["x-forwarded-for"] ||
+        req.connection?.remoteAddress ||
+        req.socket?.remoteAddress ||
+        req.ip
+      : null;
+    return { user, anonymousId };
+  }
+
   async createPrompt(req, res, next) {
     try {
       const prompt = await promptService.createPrompt({
@@ -263,7 +274,8 @@ class PromptController {
   async getPromptById(req, res, next) {
     try {
       const { id } = req.params;
-      const data = await promptService.getPromptById(id);
+      const { user, anonymousId } = this._getIdentifier(req);
+      const data = await promptService.getPromptById(id, { user, anonymousId });
       new AppResponse({
         message: "Prompt récupéré avec succès.",
         statusCode: 200,

@@ -1,50 +1,40 @@
-const viewRepository = require('./view.repository');
-const promptRepository = require('../prompts/prompt.repository');
+const viewRepository = require("./view.repository");
+const redisClient = require("../../config/redis");
 
 class ViewService {
-  // Record a view and increment view counter if it's a new view (>1h since last view)
-  async recordView(promptId, user = null, anonymousId = null) {
-    // Verify prompt exists
-    const prompt = await promptRepository.findById(promptId);
-    if (!prompt) {
-      throw new Error('Prompt not found');
-    }
-
-    // Create identifier based on authentication status
-    const identifier = user 
-      ? { userId: user.id }
-      : { anonymousId };
-
-    // Record the view (repository handles hourly rate limiting)
-    const { view, isNewView } = await viewRepository.recordView(promptId, identifier);
-
-    return {
-      view,
-      isNewView,
-      // Return the updated view count from the prompt record
-      // This is more efficient than counting all views each time
-      viewCount: prompt.views + (isNewView ? 1 : 0)
-    };
+  _getIdentifier(user, anonymousId) {
+    return user ? `user_${user.id}` : `anon_${anonymousId}`;
   }
 
-  // Get view stats for a prompt
-  async getViewStats(promptId) {
-    // Verify prompt exists
-    const prompt = await promptRepository.findById(promptId);
-    if (!prompt) {
-      throw new Error('Prompt not found');
+  _getRedisKey(promptId, identifier) {
+    return `prompt:views:${promptId}:${identifier}`;
+  }
+
+  async _hasViewedRecently(promptId, identifier) {
+    const key = this._getRedisKey(promptId, identifier);
+    const exists = await redisClient.exists(key);
+    return exists === 1;
+  }
+
+  async _markViewed(promptId, identifier, ttlSeconds = 24 * 60 * 60) {
+    const key = this._getRedisKey(promptId, identifier);
+    await redisClient.set(key, "1", "EX", ttlSeconds);
+  }
+
+  async recordView(promptId, user = null, anonymousId = null, options = {}) {
+    const identifier = this._getIdentifier(user, anonymousId);
+
+    if (await this._hasViewedRecently(promptId, identifier)) {
+      return { isNewView: false };
     }
+    await viewRepository.recordView(
+      promptId,
+      { userId: user?.id || null, anonymousId: user ? null : anonymousId },
+      options
+    );
 
-    // Get the actual count from the views table (more precise than the counter)
-    const totalViews = await viewRepository.countViews(promptId);
-    const uniqueViewers = await viewRepository.countUniqueViewers(promptId);
-
-    return {
-      totalViews,
-      uniqueViewers,
-      // Also return the counter value from the prompt record
-      counterValue: prompt.views
-    };
+    await this._markViewed(promptId, identifier);
+    return { isNewView: true };
   }
 }
 

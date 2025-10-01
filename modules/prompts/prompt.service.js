@@ -5,6 +5,7 @@ const CacheService = require("../../services/cacheService"); // Service pour gé
 const Errors = require("./prompt.errors"); // Erreurs centralisées pour le module Prompt
 const { sequelize } = require("../../models");
 const promptVersionService = require("../promptVersion/promptVersion.service");
+const viewService = require("../view/view.service");
 
 class PromptService {
   // Vérifie que l'ID est présent et valide
@@ -54,11 +55,22 @@ class PromptService {
    * @param {*} id - UUID du prompt
    * @returns Le prompt correspondant
    */
-  async getPromptById(id, options = {}) {
-    this._validateUuid(id, "Get Prompt By Id"); // Vérifie l'ID
-    const prompt = await promptRepository.findPromptById(id, options); // Récupère le prompt dans la DB
-    this._ensurePromptExists(prompt, id); // Vérifie que le prompt existe
-    return prompt;
+  async getPromptById(id, { currentUser, anonymousId }) {
+    this._validateUuid(id);
+    return await sequelize.transaction(async (t) => {
+      const prompt = await promptRepository.findPromptById(id, {
+        transaction: t,
+      });
+      this._ensurePromptExists(prompt, id);
+
+      await viewService.recordView(
+        id,
+        currentUser || null,
+        anonymousId || null,
+        { transaction: t }
+      );
+      return prompt;
+    });
   }
 
   /**

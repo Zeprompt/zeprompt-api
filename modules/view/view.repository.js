@@ -1,36 +1,15 @@
-const { View, Prompt } = require('../../models');
+const { View } = require("../../models");
 
 class ViewRepository {
-  // Record a view for a prompt (anonymous or authenticated)
-  async recordView(promptId, identifier) {
-    // Check if this user/anonymous has viewed the prompt in the last hour
-    const existingView = await View.findOne({
-      where: {
-        ...identifier,
-        promptId,
-      },
-      order: [['lastViewedAt', 'DESC']],
-    });
-
-    // Don't record the view if the last view was less than 1 hour ago
-    if (existingView) {
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      if (existingView.lastViewedAt > oneHourAgo) {
-        return { view: existingView, isNewView: false };
-      }
-    }
-
-    // Update the views counter on the prompt
-    await Prompt.increment('views', { where: { id: promptId } });
-
-    // Create a new view record
+  async recordView(promptId, identifier, options = {}) {
     const view = await View.create({
       ...identifier,
       promptId,
       lastViewedAt: new Date(),
+      ...options,
     });
 
-    return { view, isNewView: true };
+    return view;
   }
 
   // Get view count for a prompt (total)
@@ -46,12 +25,20 @@ class ViewRepository {
     const result = await View.findAll({
       where: { promptId },
       attributes: [
-        [View.sequelize.fn('COUNT', View.sequelize.fn('DISTINCT', 
-          View.sequelize.fn('COALESCE', 
-            View.sequelize.col('user_id'), 
-            View.sequelize.col('anonymous_id')
-          )
-        )), 'uniqueViewers'],
+        [
+          View.sequelize.fn(
+            "COUNT",
+            View.sequelize.fn(
+              "DISTINCT",
+              View.sequelize.fn(
+                "COALESCE",
+                View.sequelize.col("user_id"),
+                View.sequelize.col("anonymous_id")
+              )
+            )
+          ),
+          "uniqueViewers",
+        ],
       ],
       raw: true,
     });
