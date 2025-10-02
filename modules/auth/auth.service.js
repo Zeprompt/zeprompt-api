@@ -198,7 +198,7 @@ class AuthService {
     const { email, username, password } = data;
     await this._ensureEmailIsAvailable(email);
     const hashedPassword = await hashPassword(password);
-    const user = await this._createNewUser({ email, username, hashedPassword });
+    const user = this._createNewUser({ email, username, hashedPassword });
     const emailResult = await this._sendVerficationEmail(user);
     return {
       user: this._formateUser(user),
@@ -265,7 +265,7 @@ class AuthService {
    */
   async requestPasswordReset(email) {
     const user = await this._findUserByEmailOrThrow(email);
-    const resetToken = await this._generateResetToken(user.email);
+    const resetToken = this._generateResetToken(user.email);
     const resetUrl = this._buildResetUrl(user.email, resetToken);
     await this._queueResetPasswordEmail(user, resetUrl);
     return { message: "Email de réinitialisation envoyé." };
@@ -292,7 +292,7 @@ class AuthService {
    * @returns {Object} - Message de confirmation
    */
   async resetPassword(token, email, newPassword) {
-    await this.verifyPasswordResetToken(token, email);
+    this.verifyPasswordResetToken(token, email);
     const hashedPassword = await hashPassword(newPassword);
     const user = await this._findUserByEmailOrThrow(email);
     await userService.updateUser(user.id, { password: hashedPassword });
@@ -309,7 +309,7 @@ class AuthService {
    * @returns {Object} - Message et utilisateur mis à jour
    */
   async disableUser(userId) {
-    const user = await this._findUserByIdOrThrow(userId);
+    const user = this._findUserByIdOrThrow(userId);
     if (!user.active) throw Errors.userAlreadyDeactivated();
     const updatedUser = await userService.updateUser(userId, { active: false });
     return {
@@ -324,7 +324,7 @@ class AuthService {
    * @returns {Object} - Message et utilisateur mis à jour
    */
   async enableUser(userId) {
-    const user = await this._findUserByIdOrThrow(userId);
+    const user = this._findUserByIdOrThrow(userId);
     if (user.active) throw Errors.userAlreadyActivate();
     const updatedUser = await userService.updateUser(userId, { active: true });
     return {
@@ -339,7 +339,7 @@ class AuthService {
    * @returns {Object} - Message et utilisateur mis à jour
    */
   async softDeleteUser(userId) {
-    const user = await this._findUserByIdOrThrow(userId);
+    const user = this._findUserByIdOrThrow(userId);
     if (user.deletedAt) throw Errors.userAlreadyDeleted();
     const deletedUser = await userService.updateUser(userId, {
       deletedAt: new Date(),
@@ -356,7 +356,7 @@ class AuthService {
    * @returns {Object} - Message et utilisateur restauré
    */
   async restoreUser(userId) {
-    const user = await this._findUserByIdOrThrow(userId);
+    const user = this._findUserByIdOrThrow(userId);
     if (!user.deletedAt) throw Errors.userNotDeleted();
     const restoredUser = await userService.updateUser(userId, {
       deletedAt: null,
@@ -373,10 +373,11 @@ class AuthService {
    * @returns {Object} - Profil de l'utilisateur
    */
   async getUserProfile(userId) {
-    const user = await this._findUserByIdOrThrow(userId);
+    const profile = await userService.getUserProfile(userId);
+    if (!profile) throw Errors.userNotFound();
     return {
-      message: "Profile récupéré avec succès.",
-      user: this._formateUser(user),
+      message: "Profil récupéré avec succès.",
+      user: profile,
     };
   }
 

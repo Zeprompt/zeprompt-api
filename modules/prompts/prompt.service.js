@@ -35,7 +35,8 @@ class PromptService {
         .createHash("sha256")
         .update(
           (data.title || "") + (data.content || "") + (data.contentType || "")
-        );
+        )
+        .digest("hex");
 
       data.hash = hash;
       const existing = await promptRepository.findByHash(hash, {

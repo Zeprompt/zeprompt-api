@@ -43,7 +43,10 @@ class CommentService {
   async deleteComment(commentId, currentUser) {
     const transaction = await sequelize.transaction();
     try {
-      const comment = await commentRepository.getCommentById(commentId);
+      const comment = await commentRepository.getCommentById(
+        commentId,
+        transaction
+      );
       if (!comment) throw Errors.commentNotFound();
       if (!this._isOwnerOrAdmin(comment, currentUser))
         throw Errors.unauthorizedAction();

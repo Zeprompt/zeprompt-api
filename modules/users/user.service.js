@@ -58,6 +58,16 @@ class UserService {
   async deleteUser(id) {
     return userRepository.delete(id);
   }
+
+  async getUserProfile(userId) {
+    const user = await userRepository.findUserProfile(userId);
+    if (!user) return null;
+    const stats = await userRepository.getUserStats(userId);
+    return {
+      ...user.toJSON(),
+      stats,
+    };
+  }
 }
 
 module.exports = new UserService();
