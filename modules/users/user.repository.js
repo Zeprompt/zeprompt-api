@@ -1,3 +1,4 @@
+const { literal } = require("sequelize");
 const { User, Prompt, Like, View, Sequelize } = require("../../models");
 
 /**
@@ -77,6 +78,52 @@ class UserRepository {
       include: [{ model: Prompt, where: { userId } }],
     });
     return { totalLikes, totalPrompts, totalViews };
+  }
+
+  async getLeaderBoard(limit = 20) {
+    return await User.findAll({
+      attributes: [
+        "id",
+        "username",
+        "email",
+        [
+          literal(`(
+          SELECT COUNT(*) 
+          FROM prompts AS p 
+          WHERE p.user_id = "User"."id"
+        )`),
+          "promptCount",
+        ],
+        [
+          literal(`(
+          SELECT COUNT(*) 
+          FROM likes AS l 
+          INNER JOIN prompts AS p ON l.prompt_id = p.id 
+          WHERE p.user_id = "User"."id"
+        )`),
+          "likeCount",
+        ],
+        [
+          literal(`(
+          SELECT COUNT(*) 
+          FROM views AS v 
+          INNER JOIN prompts AS p ON v.prompt_id = p.id 
+          WHERE p.user_id = "User"."id"
+        )`),
+          "viewCount",
+        ],
+        [
+          literal(`(
+          (SELECT COUNT(*) FROM prompts AS p WHERE p.user_id = "User"."id") * 3
+          + (SELECT COUNT(*) FROM likes AS l INNER JOIN prompts AS p ON l.prompt_id = p.id WHERE p.user_id = "User"."id") * 2
+          + (SELECT COUNT(*) FROM views AS v INNER JOIN prompts AS p ON v.prompt_id = p.id WHERE p.user_id = "User"."id") * 1
+        )`),
+          "score",
+        ],
+      ],
+      order: [[literal("score"), "DESC"]],
+      limit,
+    });
   }
 }
 

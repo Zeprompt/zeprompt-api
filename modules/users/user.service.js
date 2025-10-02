@@ -1,3 +1,4 @@
+const CacheService = require("../../services/cacheService");
 const userRepository = require("./user.repository");
 
 /**
@@ -67,6 +68,28 @@ class UserService {
       ...user.toJSON(),
       stats,
     };
+  }
+
+  async getLeaderBoard(limit = 20) {
+    const cachKey = `leaderboard:top${limit}`;
+    const cached = await CacheService.get(cachKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+    const leaderBoard = await userRepository.getLeaderBoard(limit);
+    const formatted = leaderBoard.map((user) => ({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt,
+      promptCount: parseInt(user.get("promptCount"), 10) || 0,
+      likeCount: parseInt(user.get("likeCount"), 10) || 0,
+      viewCount: parseInt(user.get("viewsCount"), 10) || 0,
+      score: parseInt(user.get("score"), 10) || 0,
+    }));
+    await CacheService.set(cachKey, JSON.stringify(formatted), 600);
+    return formatted;
   }
 }
 

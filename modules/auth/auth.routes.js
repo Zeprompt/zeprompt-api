@@ -70,4 +70,11 @@ router.put("/users/me", AuthMiddleware.authenticate, (req, res, next) => {
   authController.updateProfile(req, res, next);
 });
 
+// --- leaderboard------
+router.get(
+  "/users/leaderboard",
+  AuthMiddleware.authenticate,
+  (req, res, next) => authController.getLeaderBoard(req, res, next)
+);
+
 module.exports = router;

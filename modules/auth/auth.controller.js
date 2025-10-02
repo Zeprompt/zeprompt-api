@@ -1,4 +1,5 @@
 const AppResponse = require("../../utils/appResponse");
+const userService = require("../users/user.service");
 const authService = require("./auth.service");
 
 /**
@@ -378,6 +379,77 @@ const authService = require("./auth.service");
  *         description: Utilisateur restauré
  */
 
+/**
+ * @openapi
+ * /api/auth/users/leaderboard:
+ *   get:
+ *     summary: Récupère le classement des utilisateurs (leaderboard)
+ *     tags: [Leaderboard]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           example: 20
+ *         description: Nombre d'utilisateurs à récupérer (top N)
+ *     responses:
+ *       200:
+ *         description: Leaderboard récupéré avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Top 20 utilisateurs"
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 code:
+ *                   type: string
+ *                   example: "LEADERBOARD_FETCHED"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                         example: "123e4567-e89b-12d3-a456-426614174000"
+ *                       username:
+ *                         type: string
+ *                         example: "john_doe"
+ *                       email:
+ *                         type: string
+ *                         format: email
+ *                         example: "john@example.com"
+ *                       role:
+ *                         type: string
+ *                         example: "user"
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-10-02T09:30:00Z"
+ *                       promptCount:
+ *                         type: integer
+ *                         example: 12
+ *                       likeCount:
+ *                         type: integer
+ *                         example: 34
+ *                       viewCount:
+ *                         type: integer
+ *                         example: 120
+ *                       score:
+ *                         type: integer
+ *                         example: 210
+ */
+
 class AuthController {
   async register(req, res, next) {
     try {
@@ -580,6 +652,22 @@ class AuthController {
         data: data.message,
         success: true,
         code: "USER_UPDATED",
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getLeaderBoard(req, res, next) {
+    try {
+      const limit = parseInt(req.query.limit, 10) || 20;
+      const leaderBoard = await userService.getLeaderBoard(limit);
+      new AppResponse({
+        message: `Top ${limit} utilisateurs`,
+        statusCode: 200,
+        data: leaderBoard,
+        success: true,
+        code: "LEADERBOARD_FETCHED",
       }).send(res);
     } catch (error) {
       next(error);
