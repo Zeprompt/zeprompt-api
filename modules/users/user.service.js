@@ -74,7 +74,8 @@ class UserService {
     const cachKey = `leaderboard:top${limit}`;
     const cached = await CacheService.get(cachKey);
     if (cached) {
-      return JSON.parse(cached);
+      const parsed = JSON.parse(cached);
+      return typeof parsed === "string" ? JSON.parse(parsed) : parsed;
     }
     const leaderBoard = await userRepository.getLeaderBoard(limit);
     const formatted = leaderBoard.map((user) => ({
