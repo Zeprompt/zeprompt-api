@@ -3,6 +3,7 @@ const redisClient = require("../../config/redis");
 const { getIO } = require("../../config/socket");
 const Errors = require("./like.errors");
 const { sequelize } = require("../../models");
+const CacheService = require("../../services/cacheService");
 
 class LikeService {
   // --- Méthodes privées Redis ---
@@ -10,6 +11,11 @@ class LikeService {
     const key = `prompt:likes:${promptId}`;
     const result = await redisClient.sismember(key, identifier);
     return result === 1;
+  }
+
+  async _invalidateCache() {
+    const leaderBoardCachKey = `leaderboard:top20`;
+    await CacheService.del(leaderBoardCachKey);
   }
 
   async _addUserLikeCache(promptId, identifier) {
@@ -76,6 +82,7 @@ class LikeService {
 
       // Mise à jour Redis pour compteur rapide
       await this._addUserLikeCache(promptId, identifier);
+      await this._invalidateCache();
 
       await transaction.commit();
 
@@ -107,6 +114,7 @@ class LikeService {
 
       // Redis
       await this._removeUserLikeCache(promptId, identifier);
+      await this._invalidateCache();
 
       await transaction.commit();
 

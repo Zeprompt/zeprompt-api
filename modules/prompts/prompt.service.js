@@ -21,6 +21,8 @@ class PromptService {
 
   // Invalide le cache des prompts (utile après création, suppression ou update)
   async _invalidateCache() {
+    const leaderBoardCachKey = `leaderboard:top20`;
+    await CacheService.del(leaderBoardCachKey);
     await CacheService.del("prompts:page_1_limit_20"); // Suppression de la clé cache spécifique
   }
 

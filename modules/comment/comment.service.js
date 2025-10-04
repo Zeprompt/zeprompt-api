@@ -2,6 +2,7 @@ const { getIO } = require("../../config/socket");
 const { sequelize } = require("../../models");
 const commentRepository = require("./comment.repository");
 const Errors = require("./comment.errors");
+const CacheService = require("../../services/cacheService");
 
 class CommentService {
   async _broadcastCommentUpdate(promptId) {
@@ -15,6 +16,11 @@ class CommentService {
     return (
       (comment.userId && comment.userId === user.id) || user.role === "admin"
     );
+  }
+
+  async _invalidateCache() {
+    const leaderBoardCachKey = `leaderboard:top20`;
+    await CacheService.del(leaderBoardCachKey);
   }
 
   async createComment(promptId, content, user, parentId = null) {
@@ -31,6 +37,7 @@ class CommentService {
         { transaction }
       );
       await this._broadcastCommentUpdate(promptId);
+      await this._invalidateCache();
       await transaction.commit();
 
       return comment;
@@ -52,6 +59,7 @@ class CommentService {
         throw Errors.unauthorizedAction();
       await commentRepository.removeComment(commentId, { transaction });
       await this._broadcastCommentUpdate(comment.promptId);
+      await this._invalidateCache();
       await transaction.commit();
       return true;
     } catch (error) {
