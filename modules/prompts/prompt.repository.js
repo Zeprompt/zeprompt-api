@@ -8,7 +8,16 @@ class PromptRepository {
    * @returns {Promise<Prompt>}
    */
   async createPrompt(data, options = {}) {
-    return await Prompt.create(data, options);
+    const prompt = await Prompt.create(data, options);
+    // Recharger le prompt avec ses relations (tags, user, etc.)
+    await prompt.reload({
+      include: [
+        { model: Tag, through: { attributes: [] } },
+        { model: User, as: "user", attributes: ["id", "username", "email"] },
+      ],
+      ...options,
+    });
+    return prompt;
   }
 
   /**
@@ -32,7 +41,7 @@ class PromptRepository {
     const prompt = await Prompt.findByPk(id, {
       include: [
         { model: User, as: "user", attributes: ["id", "username", "email"] },
-        { model: Tag, through: { attributes: [] } },
+        { model: Tag, through: { attributes: [] }, attributes: ["id", "name"] },
         { model: Like, attributes: [] },
         { model: View, attributes: [] },
       ],
@@ -61,9 +70,15 @@ class PromptRepository {
       include: [
         {
           model: Tag,
-          as: "Tags",
           where: { id: tagsIds },
+          through: { attributes: [] },
+          attributes: ["id", "name"],
           required: true,
+        },
+        {
+          model: User,
+          as: "user",
+          attributes: ["id", "username", "email"],
         },
       ],
       where: {
@@ -90,20 +105,39 @@ class PromptRepository {
     let whereCondition;
 
     if (!currentUser) {
-      whereCondition = { isPublic: true };
+      // Utilisateurs publics : seulement les prompts publics ET activés
+      whereCondition = { isPublic: true, status: "activé" };
     } else if (currentUser.role === "admin") {
+      // Admins : tous les prompts quel que soit le statut
       whereCondition = {};
     } else {
+      // Utilisateurs connectés : leurs propres prompts OU les prompts publics activés
       whereCondition = {
-        [Op.or]: [{ isPublic: true }, { userId: currentUser.id }],
+        [Op.or]: [
+          { isPublic: true, status: "activé" },
+          { userId: currentUser.id },
+        ],
       };
     }
 
     const { rows, count } = await Prompt.findAndCountAll({
       where: whereCondition,
+      include: [
+        { 
+          model: Tag, 
+          through: { attributes: [] },
+          attributes: ["id", "name"]
+        },
+        { 
+          model: User, 
+          as: "user", 
+          attributes: ["id", "username", "email"] 
+        },
+      ],
       offset,
       limit,
       order: [["createdAt", "DESC"]],
+      distinct: true,
       ...options,
     });
     return {
@@ -134,7 +168,10 @@ class PromptRepository {
   }
 
   async searchPrompts({ q, tags, sort, order = "DESC", page = 1, limit = 20 }) {
-    const where = {};
+    const where = {
+      isPublic: true,
+      status: "activé", // Seulement les prompts activés dans la recherche publique
+    };
 
     // Recherche texte (titre + contenu)
     if (q) {
@@ -145,20 +182,27 @@ class PromptRepository {
     }
 
     // Filtrage par tags
-    const include = [];
+    const include = [
+      {
+        model: User,
+        as: "user",
+        attributes: ["id", "username", "email"],
+      },
+    ];
+    
     if (tags.length > 0) {
       include.push({
         model: Tag,
         where: { name: tags },
         through: { attributes: [] },
-        as: "Tags",
-        require: true,
+        attributes: ["id", "name"],
+        required: true,
       });
     } else {
       include.push({
         model: Tag,
         through: { attributes: [] },
-        as: "Tags",
+        attributes: ["id", "name"],
         required: false,
       });
     }
@@ -190,6 +234,21 @@ class PromptRepository {
       page,
       limit,
     };
+  }
+
+  /**
+   * Incrémenter le compteur de signalements d'un prompt
+   * @param {string} id - ID du prompt
+   * @returns {Promise<Prompt>}
+   */
+  async reportPrompt(id) {
+    const prompt = await Prompt.findByPk(id);
+    if (!prompt) {
+      return null;
+    }
+    prompt.reportCount += 1;
+    await prompt.save();
+    return prompt;
   }
 }
 

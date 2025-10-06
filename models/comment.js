@@ -39,6 +39,15 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.TEXT,
         allowNull: false,
       },
+      reportCount: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+        field: "report_count",
+        validate: {
+          min: 0,
+        },
+      },
       parentId: {
         type: DataTypes.UUID,
         allowNull: true,
