@@ -9,12 +9,12 @@ class TagRepository {
     return await Tag.findByPk(id);
   }
 
-  async findByName(name) {
-    return await Tag.findOne({ where: { name } });
+  async findByName(name, options = {}) {
+    return await Tag.findOne({ where: { name }, ...options });
   }
 
-  async create(data) {
-    return await Tag.create(data);
+  async create(data, options = {}) {
+    return await Tag.create(data, options);
   }
 
   async update(tag, data) {

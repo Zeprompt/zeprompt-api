@@ -235,6 +235,64 @@ class CommentController {
       next(error);
     }
   }
+
+  /**
+   * @swagger
+   * /api/comments/{id}/report:
+   *   post:
+   *     summary: Signaler un commentaire
+   *     tags: [Comments]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *           format: uuid
+   *         description: ID du commentaire à signaler
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               reason:
+   *                 type: string
+   *                 description: Raison du signalement (optionnel)
+   *                 example: Commentaire offensant
+   *     responses:
+   *       200:
+   *         description: Commentaire signalé avec succès
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                 reportCount:
+   *                   type: integer
+   *       404:
+   *         description: Commentaire non trouvé
+   */
+  async reportComment(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+      const result = await commentService.reportComment(id, req.user.id, reason);
+      new AppResponse({
+        message: result.message,
+        statusCode: 200,
+        data: { reportCount: result.reportCount },
+        code: "COMMENT_REPORTED",
+        success: true,
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new CommentController();

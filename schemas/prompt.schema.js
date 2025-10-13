@@ -1,6 +1,7 @@
 const { z } = require("zod");
 
 const allowedContentTypes = ["text", "pdf"];
+const allowedStatus = ["activé", "désactivé"];
 
 // Schéma pour la création d'un prompt
 const createPromptSchema = z
@@ -40,9 +41,27 @@ const createPromptSchema = z
       .optional()
       .nullable(),
 
-    tags: z.array(z.string()).optional().default([]),
+    tags: z
+      .union([
+        z.array(z.string()), // Tableau de strings (JSON)
+        z.string().transform((str) => str.split(",").map((s) => s.trim())), // String séparé par virgules (Form-Data)
+      ])
+      .optional()
+      .default([]),
 
-    isPublic: z.boolean().optional().default(true),
+    isPublic: z
+      .union([
+        z.boolean(), // Boolean direct (JSON)
+        z.string().transform((str) => str === "true"), // String "true"/"false" (Form-Data)
+      ])
+      .optional()
+      .default(true),
+
+    status: z.enum(allowedStatus, {
+      errorMap: () => ({
+        message: `Le statut doit être l'un de : ${allowedStatus.join(", ")}`,
+      }),
+    }).optional().default("activé"),
 
     imageUrl: z.string().url().optional().nullable(),
   })
@@ -97,6 +116,12 @@ const updatePromptSchema = z
     tags: z.array(z.string()).optional(),
 
     isPublic: z.boolean().optional(),
+
+    status: z.enum(allowedStatus, {
+      errorMap: () => ({
+        message: `Le statut doit être l'un de : ${allowedStatus.join(", ")}`,
+      }),
+    }).optional(),
 
     imageUrl: z.string().url().optional().nullable(),
   })
