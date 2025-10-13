@@ -8,6 +8,7 @@ const promptVersionService = require("../promptVersion/promptVersion.service");
 const viewService = require("../view/view.service");
 const tagRepository = require("../tags/tag.repository");
 const logger = require("../../utils/logger");
+const fileUploadService = require("../../services/fileUploadService");
 
 class PromptService {
   _formatFileName(originalName) {
@@ -75,7 +76,42 @@ class PromptService {
         });
         await prompt.setTags(tagInstances, { transaction: t });
       }
-
+      
+      // Si c'est un prompt PDF, ajouter à la queue pour traitement
+      if (data.contentType === 'pdf' && data.pdfFilePath) {
+        await fileUploadService.processPdfPrompt(
+          data.pdfFilePath,
+          data.userId,
+          {
+            promptId: prompt.id,
+            title: prompt.title,
+            originalName: data.pdfOriginalName,
+            fileSize: data.pdfFileSize,
+          }
+        );
+        logger.info(`📄 PDF ajouté à la queue pour traitement: ${prompt.id}`);
+      }
+      
+      // Si une image est attachée (pour prompts texte), ajouter à la queue pour optimisation
+      if (data.contentType === 'text' && data.imagePath) {
+        try {
+          await fileUploadService.processPromptImage(
+            data.imagePath,
+            data.userId,
+            {
+              promptId: prompt.id,
+              title: prompt.title,
+              originalName: data.imageOriginalName,
+              fileSize: data.imageFileSize,
+            }
+          );
+          logger.info(`🖼️ Image de prompt ajoutée à la queue pour traitement: ${prompt.id}`);
+        } catch (error) {
+          logger.error(`❌ Erreur lors de l'ajout de l'image à la queue: ${error.message}`);
+          // Continue quand même, l'image sera utilisée même si le traitement échoue
+        }
+      }
+      
       await this._invalidateCache();
       return prompt;
     });

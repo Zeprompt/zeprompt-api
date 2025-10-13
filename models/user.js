@@ -56,6 +56,40 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: false,
         field: "emailverificationtoken",
       },
+      profilePicture: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: "profile_picture",
+      },
+      githubUrl: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: "github_url",
+        validate: {
+          isUrl: true,
+        },
+      },
+      linkedinUrl: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: "linkedin_url",
+        validate: {
+          isUrl: true,
+        },
+      },
+      whatsappNumber: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: "whatsapp_number",
+      },
+      twitterUrl: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: "twitter_url",
+        validate: {
+          isUrl: true,
+        },
+      },
     },
     {
       sequelize,

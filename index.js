@@ -1,5 +1,6 @@
 require("dotenv").config();
 require("./workers/emailWorker");
+require("./workers/fileWorker");
 const http = require("http");
 
 const express = require("express");
@@ -12,6 +13,8 @@ const setupRateLimit = require("./config/rateLimit");
 const authRoutes = require("./modules/auth/auth.routes");
 const tagRoutes = require("./modules/tags/tag.routes");
 const promptRoutes = require("./modules/prompts/prompt.routes");
+const userRoutes = require("./modules/users/user.routes");
+const fileRoutes = require("./modules/files/file.routes");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
 const errorHandler = require("./middleware/errorHandler");
@@ -32,6 +35,8 @@ initSocket(server);
 app.use("/api/auth", authRoutes);
 app.use("/api/tags", tagRoutes);
 app.use("/api/prompts", promptRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/files", fileRoutes);
 // Swagger UI
 app.use(
   "/api/docs",
