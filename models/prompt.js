@@ -55,6 +55,21 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         field: "pdf_original_name",
       },
+      imagePath: {
+        type: DataTypes.STRING,
+        field: "image_path",
+        allowNull: true,
+      },
+      imageFileSize: {
+        type: DataTypes.INTEGER,
+        field: "image_file_size",
+        allowNull: true,
+      },
+      imageOriginalName: {
+        type: DataTypes.STRING,
+        field: "image_original_name",
+        allowNull: true,
+      },
       imageUrl: {
         type: DataTypes.STRING,
         field: "image_url",

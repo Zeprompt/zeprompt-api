@@ -41,6 +41,21 @@ const createPromptSchema = z
       .optional()
       .nullable(),
 
+    imagePath: z
+      .string()
+      .optional()
+      .nullable(),
+
+    imageOriginalName: z
+      .string()
+      .optional()
+      .nullable(),
+
+    imageFileSize: z
+      .number()
+      .optional()
+      .nullable(),
+
     tags: z
       .union([
         z.array(z.string()), // Tableau de strings (JSON)
@@ -112,6 +127,12 @@ const updatePromptSchema = z
     pdfFilePath: z.string().optional().nullable(),
 
     pdfOriginalName: z.string().optional().nullable(),
+
+    imagePath: z.string().optional().nullable(),
+
+    imageOriginalName: z.string().optional().nullable(),
+
+    imageFileSize: z.number().optional().nullable(),
 
     tags: z.array(z.string()).optional(),
 

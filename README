@@ -2,6 +2,20 @@
 
 ## Présentation
 
+API robuste pour la gestion des prompts, des utilisateurs et des fichiers, conçue avec Express.js, Sequelize, Redis et BullMQ.
+
+### 🎯 Fonctionnalités principales
+
+- ✅ **Gestion des prompts** : Création de prompts texte ou PDF avec images facultatives
+- ✅ **Système de queue** : Traitement asynchrone des fichiers (PDF, images) via BullMQ
+- ✅ **Optimisation d'images** : Redimensionnement et génération de thumbnails automatiques
+- ✅ **Profils utilisateurs** : Photos de profil, liens sociaux (GitHub, LinkedIn, Twitter, WhatsApp)
+- ✅ **Système de signalement** : Report de prompts et commentaires
+- ✅ **Authentification JWT** : Sécurisation des endpoints
+- ✅ **Documentation Swagger** : API documentée et testablerompt API
+
+## Présentation
+
 API robuste pour la gestion des utilisateurs, la sécurité et l’envoi d’emails, conçue avec Express.js, Sequelize et Redis.
 
 ---
