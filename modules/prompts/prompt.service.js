@@ -129,8 +129,7 @@ class PromptService {
     this._validateUuid(id, "Update Prompt By Id");
     return await sequelize.transaction(async (t) => {
       const prompt = await this.getPromptById(id, { transaction: t });
-      if (prompt.userId !== currentUser.id || currentUser.role !== "admin")
-        throw Errors.forbidden();
+      if (prompt.userId !== currentUser.id) throw Errors.forbidden();
       await promptVersionService.createVersion(
         {
           promptId: prompt.id,
