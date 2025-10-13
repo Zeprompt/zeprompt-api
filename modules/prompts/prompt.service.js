@@ -6,6 +6,8 @@ const Errors = require("./prompt.errors"); // Erreurs centralisées pour le modu
 const { sequelize } = require("../../models");
 const promptVersionService = require("../promptVersion/promptVersion.service");
 const viewService = require("../view/view.service");
+const tagRepository = require("../tags/tag.repository");
+const logger = require("../../utils/logger");
 
 class PromptService {
   // Vérifie que l'ID est présent et valide
@@ -45,9 +47,30 @@ class PromptService {
         transaction: t,
       });
       if (existing) throw Errors.duplicatePrompt();
+      
+      // Extraire les tags avant de créer le prompt
+      const tags = data.tags || [];
+      delete data.tags; // Retirer tags de data car ce n'est pas un champ du modèle Prompt
+      
       const prompt = await promptRepository.createPrompt(data, {
         transaction: t,
       });
+      
+      // Gérer les tags si présents
+      if (tags.length > 0) {
+        const tagInstances = [];
+        for (const tagName of tags) {
+          // Chercher ou créer le tag
+          let tag = await tagRepository.findByName(tagName, { transaction: t });
+          if (!tag) {
+            tag = await tagRepository.create({ name: tagName }, { transaction: t });
+          }
+          tagInstances.push(tag);
+        }
+        // Associer les tags au prompt
+        await prompt.setTags(tagInstances, { transaction: t });
+      }
+      
       await this._invalidateCache();
       return prompt;
     });
@@ -172,6 +195,33 @@ class PromptService {
 
   async searchPrompts(params) {
     return await promptRepository.searchPrompts(params);
+  }
+
+  /**
+   * Signaler un prompt
+   * @param {string} id - UUID du prompt
+   * @param {string} userId - ID de l'utilisateur qui signale
+   * @param {string} reason - Raison du signalement (optionnel)
+   * @returns {Promise<Object>} Prompt avec le compteur de signalements mis à jour
+   */
+  async reportPrompt(id, userId, reason = null) {
+    this._validateUuid(id, "Report Prompt");
+    
+    const prompt = await promptRepository.findPromptById(id);
+    this._ensurePromptExists(prompt, id);
+
+    const updatedPrompt = await promptRepository.reportPrompt(id);
+    
+    // Invalider le cache pour ce prompt spécifique
+    await this._invalidateCache();
+    
+    // Log du signalement pour tracking
+    logger.info(`Prompt ${id} signalé par l'utilisateur ${userId}. Raison: ${reason || 'Non spécifiée'}. Total signalements: ${updatedPrompt.reportCount}`);
+    
+    return {
+      message: "Prompt signalé avec succès",
+      reportCount: updatedPrompt.reportCount,
+    };
   }
 }
 

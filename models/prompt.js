@@ -69,6 +69,20 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         defaultValue: 0,
       },
+      reportCount: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+        field: "report_count",
+        validate: {
+          min: 0,
+        },
+      },
+      status: {
+        type: DataTypes.ENUM("activé", "désactivé"),
+        allowNull: false,
+        defaultValue: "activé",
+      },
       userId: {
         type: DataTypes.UUID,
         allowNull: false,

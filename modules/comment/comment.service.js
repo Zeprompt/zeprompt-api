@@ -3,6 +3,7 @@ const { sequelize } = require("../../models");
 const commentRepository = require("./comment.repository");
 const Errors = require("./comment.errors");
 const CacheService = require("../../services/cacheService");
+const logger = require("../../utils/logger");
 
 class CommentService {
   async _broadcastCommentUpdate(promptId) {
@@ -95,6 +96,31 @@ class CommentService {
 
   async getCommentsByPrompts(promptId) {
     return commentRepository.getCommentsByPrompt(promptId);
+  }
+
+  /**
+   * Signaler un commentaire
+   * @param {string} id - UUID du commentaire
+   * @param {string} userId - ID de l'utilisateur qui signale
+   * @param {string} reason - Raison du signalement (optionnel)
+   * @returns {Promise<Object>} Commentaire avec le compteur de signalements mis à jour
+   */
+  async reportComment(id, userId, reason = null) {
+    const comment = await commentRepository.getCommentById(id);
+    if (!comment) throw Errors.commentNotFound();
+
+    const updatedComment = await commentRepository.reportComment(id);
+    
+    // Invalider le cache
+    await this._invalidateCache();
+    
+    // Log du signalement pour tracking
+    logger.info(`Commentaire ${id} signalé par l'utilisateur ${userId}. Raison: ${reason || 'Non spécifiée'}. Total signalements: ${updatedComment.reportCount}`);
+    
+    return {
+      message: "Commentaire signalé avec succès",
+      reportCount: updatedComment.reportCount,
+    };
   }
 }
 

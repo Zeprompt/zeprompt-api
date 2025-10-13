@@ -50,6 +50,21 @@ class CommentRepository {
   async getCommentById(commentId, options = {}) {
     return Comment.findOne({ where: { id: commentId }, ...options });
   }
+
+  /**
+   * Incrémenter le compteur de signalements d'un commentaire
+   * @param {string} id - ID du commentaire
+   * @returns {Promise<Comment>}
+   */
+  async reportComment(id) {
+    const comment = await Comment.findByPk(id);
+    if (!comment) {
+      return null;
+    }
+    comment.reportCount += 1;
+    await comment.save();
+    return comment;
+  }
 }
 
 module.exports = new CommentRepository();

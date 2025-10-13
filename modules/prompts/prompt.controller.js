@@ -35,6 +35,10 @@ const AppResponse = require("../../utils/appResponse");
  *           type: boolean
  *         views:
  *           type: integer
+ *         status:
+ *           type: string
+ *           enum: [activé, désactivé]
+ *           default: activé
  *         userId:
  *           type: string
  *           format: uuid
@@ -67,6 +71,10 @@ const AppResponse = require("../../utils/appResponse");
  *           nullable: true
  *         isPublic:
  *           type: boolean
+ *         status:
+ *           type: string
+ *           enum: [activé, désactivé]
+ *           default: activé
  *       required: [title, contentType]
  *
  *   securitySchemes:
@@ -167,7 +175,7 @@ const AppResponse = require("../../utils/appResponse");
  *
  * /api/prompts/public:
  *   get:
- *     summary: Récupère tous les prompts publics avec pagination
+ *     summary: Récupère tous les prompts publics et activés avec pagination
  *     tags: [Prompts]
  *     parameters:
  *       - in: query
@@ -182,13 +190,22 @@ const AppResponse = require("../../utils/appResponse");
  *           default: 20
  *     responses:
  *       200:
- *         description: Liste des prompts publics
+ *         description: Liste des prompts publics et activés
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Prompt'
+ *               type: object
+ *               properties:
+ *                 prompts:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Prompt'
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 pageCount:
+ *                   type: integer
  *
  * /api/admin/prompts:
  *   get:
@@ -417,6 +434,64 @@ class PromptController {
         statusCode: 200,
         data: results,
         code: "PROMPT_FETCHED",
+        success: true,
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/prompts/{id}/report:
+   *   post:
+   *     summary: Signaler un prompt
+   *     tags: [Prompts]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *           format: uuid
+   *         description: ID du prompt à signaler
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               reason:
+   *                 type: string
+   *                 description: Raison du signalement (optionnel)
+   *                 example: Contenu inapproprié
+   *     responses:
+   *       200:
+   *         description: Prompt signalé avec succès
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                 reportCount:
+   *                   type: integer
+   *       404:
+   *         description: Prompt non trouvé
+   */
+  async reportPrompt(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+      const result = await promptService.reportPrompt(id, req.user.id, reason);
+      new AppResponse({
+        message: result.message,
+        statusCode: 200,
+        data: { reportCount: result.reportCount },
+        code: "PROMPT_REPORTED",
         success: true,
       }).send(res);
     } catch (error) {
