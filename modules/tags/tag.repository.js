@@ -1,3 +1,4 @@
+const { Op } = require("sequelize");
 const { Tag } = require("../../models");
 
 class TagRepository {
@@ -11,6 +12,15 @@ class TagRepository {
 
   async findByName(name, options = {}) {
     return await Tag.findOne({ where: { name }, ...options });
+  }
+
+  async findByNames(names, options = {}) {
+    return await Tag.findAll({
+      where: {
+        name: { [Op.in]: names },
+      },
+      ...options,
+    });
   }
 
   async create(data, options = {}) {

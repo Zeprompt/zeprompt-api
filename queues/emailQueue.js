@@ -1,8 +1,4 @@
-const {Queue} = require('bullmq');
-const redisConnection = require("../config/redis");
-
-const emailQueue = new Queue('emailQueue', {
-    connection: redisConnection,
-})
+const {createQueue} = require("./queueFactory");
+const emailQueue = createQueue("emailQueue");
 
 module.exports = emailQueue;
