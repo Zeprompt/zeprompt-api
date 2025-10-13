@@ -125,6 +125,32 @@ class UserRepository {
       limit,
     });
   }
+
+  /**
+   * Met à jour le profil d'un utilisateur
+   * @param {string} userId - ID de l'utilisateur
+   * @param {Object} data - Données à mettre à jour
+   * @returns {Promise<User>}
+   */
+  async updateUserProfile(userId, data) {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return null;
+    }
+    
+    // Filtrer seulement les champs autorisés
+    const allowedFields = ['username', 'profilePicture', 'githubUrl', 'linkedinUrl', 'whatsappNumber', 'twitterUrl'];
+    const updateData = {};
+    
+    Object.keys(data).forEach(key => {
+      if (allowedFields.includes(key) && data[key] !== undefined) {
+        updateData[key] = data[key];
+      }
+    });
+    
+    await user.update(updateData);
+    return user;
+  }
 }
 
 module.exports = new UserRepository();
