@@ -1,81 +1,150 @@
+const AppResponse = require("../../utils/appResponse");
 const userService = require("./user.service");
-const httpResponse = require("../../utils/httpResponse");
 
 /**
- * Contrôleur pour la gestion des utilisateurs.
- * Gère les requêtes HTTP liées aux utilisateurs et fait le lien avec le service utilisateur.
+ * @openapi
+ * components:
+ *   schemas:
+ *     UserProfile:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *         username:
+ *           type: string
+ *         email:
+ *           type: string
+ *         profilePicture:
+ *           type: string
+ *           nullable: true
+ *         githubUrl:
+ *           type: string
+ *           nullable: true
+ *         linkedinUrl:
+ *           type: string
+ *           nullable: true
+ *         whatsappNumber:
+ *           type: string
+ *           nullable: true
+ *         twitterUrl:
+ *           type: string
+ *           nullable: true
+ *         role:
+ *           type: string
+ *           enum: [user, admin]
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *
+ * /api/users/profile:
+ *   get:
+ *     summary: Récupérer le profil de l'utilisateur connecté
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profil utilisateur récupéré
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserProfile'
+ *   put:
+ *     summary: Mettre à jour le profil de l'utilisateur connecté
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profilePicture:
+ *                 type: string
+ *                 format: binary
+ *                 description: Photo de profil (JPEG, PNG, GIF, WebP - max 5MB)
+ *               username:
+ *                 type: string
+ *                 example: johndoe123
+ *               githubUrl:
+ *                 type: string
+ *                 example: https://github.com/johndoe
+ *               linkedinUrl:
+ *                 type: string
+ *                 example: https://linkedin.com/in/johndoe
+ *               whatsappNumber:
+ *                 type: string
+ *                 example: +33612345678
+ *               twitterUrl:
+ *                 type: string
+ *                 example: https://twitter.com/johndoe
+ *     responses:
+ *       200:
+ *         description: Profil mis à jour avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserProfile'
+ *       400:
+ *         description: Données invalides
  */
+
 class UserController {
   /**
-   * Récupère la liste de tous les utilisateurs.
-   * @param {Object} req - Objet de la requête HTTP.
-   * @param {Object} res - Objet de la réponse HTTP.
+   * Récupérer le profil de l'utilisateur connecté
    */
-  async getAll(req, res) {
+  async getUserProfile(req, res, next) {
     try {
-      const users = await userService.getAllUser();
-      httpResponse.sendSuccess(res, 200, "user", "fetched", users);
+      const userId = req.user.id;
+      const profile = await userService.getUserProfile(userId);
+      
+      if (!profile) {
+        return new AppResponse({
+          message: "Utilisateur non trouvé",
+          statusCode: 404,
+          code: "USER_NOT_FOUND",
+          success: false,
+        }).send(res);
+      }
+      
+      new AppResponse({
+        message: "Profil récupéré avec succès",
+        statusCode: 200,
+        data: profile,
+        code: "PROFILE_FETCHED",
+        success: true,
+      }).send(res);
     } catch (error) {
-      httpResponse.sendError(res, 500, "user", "fetching", error);
+      next(error);
     }
   }
 
   /**
-   * Récupère un utilisateur par son identifiant.
-   * @param {Object} req - Objet de la requête HTTP.
-   * @param {Object} res - Objet de la réponse HTTP.
+   * Mettre à jour le profil de l'utilisateur connecté
    */
-  async getById(req, res) {
+  async updateUserProfile(req, res, next) {
     try {
-      const user = await userService.getUserById(req.params.id);
-      if (!user) return res.status(404).json({ message: "User not found !" });
-      httpResponse.sendSuccess(res, 200, "user", "fetched by Id", user);
+      const userId = req.user.id;
+      const profileData = req.body;
+      const profilePicturePath = req.file ? req.file.path : null;
+      
+      const updatedProfile = await userService.updateUserProfile(
+        userId,
+        profileData,
+        profilePicturePath
+      );
+      
+      new AppResponse({
+        message: "Profil mis à jour avec succès",
+        statusCode: 200,
+        data: updatedProfile,
+        code: "PROFILE_UPDATED",
+        success: true,
+      }).send(res);
     } catch (error) {
-      httpResponse.sendError(res, 500, "user", "fetching by Id", error);
-    }
-  }
-
-  /**
-   * Crée un nouvel utilisateur.
-   * @param {Object} req - Objet de la requête HTTP.
-   * @param {Object} res - Objet de la réponse HTTP.
-   */
-  async create(req, res) {
-    try {
-      const user = await userService.createUser(req.body);
-      httpResponse.sendSuccess(res, 201, "user", "created", user);
-    } catch (error) {
-      httpResponse.sendError(res, 500, "user", "creating", error);
-    }
-  }
-
-  /**
-   * Met à jour un utilisateur existant.
-   * @param {Object} req - Objet de la requête HTTP.
-   * @param {Object} res - Objet de la réponse HTTP.
-   */
-  async update(req, res) {
-    try {
-      const user = await userService.updateUser(req.params.id, req.body);
-      if (!user) return res.status(404).json({ message: "User not found ! " });
-      httpResponse.sendSuccess(res, 200, "user", "updated", user);
-    } catch (error) {
-      httpResponse.sendError(res, 500, "user", "updating", error);
-    }
-  }
-
-  /**
-   * Supprime un utilisateur.
-   * @param {Object} req - Objet de la requête HTTP.
-   * @param {Object} res - Objet de la réponse HTTP.
-   */
-  async delete(req, res) {
-    try {
-      const user = await userService.deleteUser(req.params.id);
-      if (!user) return res.status(404).json({ message: "User not found ! " });
-      httpResponse.sendSuccess(res, 200, "user", "deleted", user);
-    } catch (error) {
-      httpResponse.sendError(res, 500, "user", "deleting", error);
+      next(error);
     }
   }
 }

@@ -1,65 +1,154 @@
-const { User } = require("../../models");
+const { literal } = require("sequelize");
+const { User, Prompt, Like, View, Sequelize } = require("../../models");
 
 /**
  * Repository pour la gestion des utilisateurs.
  */
 class UserRepository {
-  /**
-   * Récupère tous les utilisateurs.
-   * @returns {Promise<Array>} Liste des utilisateurs.
-   */
   async findAll() {
     return await User.findAll();
   }
 
-  /**
-   * Recherche un utilisateur par son identifiant.
-   * @param {number} id - Identifiant de l'utilisateur.
-   * @returns {Promise<Object|null>} Utilisateur trouvé ou null.
-   */
   async findById(id) {
     return await User.findByPk(id);
   }
 
-  /**
-   * 
-   * @param {string} email 
-   * @returns {Promise<Object|null>} Utilisateur trouvé ou null.
-   */
   async findByEmail(email) {
     return await User.findOne({ where: { email } });
   }
 
-  /**
-   * Crée un nouvel utilisateur.
-   * @param {Object} data - Données de l'utilisateur à créer.
-   * @returns {Promise<Object>} Utilisateur créé.
-   */
   async create(data) {
     return User.create(data);
   }
 
-  /**
-   * Met à jour un utilisateur existant.
-   * @param {number} id - Identifiant de l'utilisateur.
-   * @param {Object} data - Nouvelles données de l'utilisateur.
-   * @returns {Promise<Object|null>} Utilisateur mis à jour ou null si non trouvé.
-   */
-  async update(id, data) {
-    const user = await this.findById(id);
-    if (!user) return null;
+  async update(user, data) {
     return user.update(data);
   }
 
+  async delete(user) {
+    return await user.destroy();
+  }
+
+  async findUserProfile(userId) {
+    return await User.findByPk(userId, {
+      attributes: ["id", "username", "email", "role", "createdAt"],
+      include: [
+        {
+          model: Prompt,
+          as: "Prompts",
+          attributes: [
+            "id",
+            "title",
+            "content",
+            "contentType",
+            "isPublic",
+            "imageUrl",
+            "pdfFilePath",
+            "pdfFileSize",
+            "pdfOriginalName",
+            "createdAt",
+            // Sous-requête pour compter likes et vues par prompt
+            [
+              Sequelize.literal(`(
+                SELECT COUNT(*)
+                FROM Likes AS l
+                WHERE l."prompt_id" = "Prompts"."id")`),
+              "likeCount",
+            ],
+            [
+              Sequelize.literal(`(
+                SELECT COUNT(*)
+                FROM Views AS v
+                WHERE v."prompt_id" = "Prompts"."id"
+                )`),
+              "viewCount",
+            ],
+          ],
+        },
+      ],
+    });
+  }
+
+  async getUserStats(userId) {
+    const totalPrompts = await Prompt.count({ where: { userId } });
+    const totalLikes = await Like.count({
+      include: [{ model: Prompt, where: { userId } }],
+    });
+    const totalViews = await View.count({
+      include: [{ model: Prompt, where: { userId } }],
+    });
+    return { totalLikes, totalPrompts, totalViews };
+  }
+
+  async getLeaderBoard(limit = 20) {
+    return await User.findAll({
+      attributes: [
+        "id",
+        "username",
+        "email",
+        [
+          literal(`(
+          SELECT COUNT(*) 
+          FROM prompts AS p 
+          WHERE p.user_id = "User"."id"
+        )`),
+          "promptCount",
+        ],
+        [
+          literal(`(
+          SELECT COUNT(*) 
+          FROM likes AS l 
+          INNER JOIN prompts AS p ON l.prompt_id = p.id 
+          WHERE p.user_id = "User"."id"
+        )`),
+          "likeCount",
+        ],
+        [
+          literal(`(
+          SELECT COUNT(*) 
+          FROM views AS v 
+          INNER JOIN prompts AS p ON v.prompt_id = p.id 
+          WHERE p.user_id = "User"."id"
+        )`),
+          "viewCount",
+        ],
+        [
+          literal(`(
+          (SELECT COUNT(*) FROM prompts AS p WHERE p.user_id = "User"."id") * 3
+          + (SELECT COUNT(*) FROM likes AS l INNER JOIN prompts AS p ON l.prompt_id = p.id WHERE p.user_id = "User"."id") * 2
+          + (SELECT COUNT(*) FROM views AS v INNER JOIN prompts AS p ON v.prompt_id = p.id WHERE p.user_id = "User"."id") * 1
+        )`),
+          "score",
+        ],
+      ],
+      order: [[literal("score"), "DESC"]],
+      limit,
+    });
+  }
+
   /**
-   * Supprime un utilisateur.
-   * @param {number} id - Identifiant de l'utilisateur.
-   * @returns {Promise<Object|null>} Utilisateur supprimé ou null si non trouvé.
+   * Met à jour le profil d'un utilisateur
+   * @param {string} userId - ID de l'utilisateur
+   * @param {Object} data - Données à mettre à jour
+   * @returns {Promise<User>}
    */
-  async delete(id) {
-    const user = await this.findById(id);
-    if (!user) return null;
-    await user.destroy();
+  async updateUserProfile(userId, data) {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return null;
+    }
+    
+    // Filtrer seulement les champs autorisés
+    const allowedFields = ['username', 'profilePicture', 'githubUrl', 'linkedinUrl', 'whatsappNumber', 'twitterUrl'];
+    const updateData = {};
+    
+    Object.keys(data).forEach(key => {
+      if (allowedFields.includes(key) && data[key] !== undefined) {
+        updateData[key] = data[key];
+      }
+    });
+    
+    await user.update(updateData);
     return user;
   }
 }
