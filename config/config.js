@@ -6,12 +6,10 @@ module.exports = {
     password: process.env.PGPASSWORD,
     database: process.env.PGDATABASE,
     host: process.env.PGHOST,
+    port: process.env.PGPORT || 5432,
     dialect: "postgres",
     dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false, // ← autorise les certificats auto-signés
-      },
+      ssl: false,
     },
   },
   test: {
@@ -19,6 +17,7 @@ module.exports = {
     password: process.env.PGPASSWORD,
     database: process.env.PGDATABASE,
     host: process.env.PGHOST,
+    port: process.env.PGPORT || 5432,
     dialect: "postgres",
     dialectOptions: {
       ssl: {
@@ -32,6 +31,7 @@ module.exports = {
     password: process.env.PGPASSWORD,
     database: process.env.PGDATABASE,
     host: process.env.PGHOST,
+    port: process.env.PGPORT || 5432,
     dialect: "postgres",
     dialectOptions: {
       ssl: {

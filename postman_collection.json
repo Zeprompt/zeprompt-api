@@ -1,0 +1,149 @@
+{
+  "info": {
+    "name": "Zeprompt API",
+    "_postman_id": "",
+    "description": "Collection Postman générée pour l'API ZePrompt (mises à jour : endpoints manquants ajoutés)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /api/health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/health", "host": ["{{baseUrl}}"], "path": ["api","health"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /api/auth/register",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"username\": \"user1\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api","auth","register"] }
+          }
+        },
+        {
+          "name": "POST /api/auth/login",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] }
+          }
+        },
+        {
+          "name": "GET /api/auth/verify-email",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/auth/verify-email?token=...", "host": ["{{baseUrl}}"], "path": ["api","auth","verify-email"] } }
+        },
+        {
+          "name": "POST /api/auth/resend-verification-email",
+          "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"email\": \"user@example.com\"\n}" }, "url": { "raw": "{{baseUrl}}/api/auth/resend-verification-email", "host": ["{{baseUrl}}"], "path": ["api","auth","resend-verification-email"] } }
+        },
+        {
+          "name": "POST /api/auth/request-password-reset",
+          "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"email\": \"user@example.com\"\n}" }, "url": { "raw": "{{baseUrl}}/api/auth/request-password-reset", "host": ["{{baseUrl}}"], "path": ["api","auth","request-password-reset"] } }
+        },
+        {
+          "name": "GET /api/auth/verify-password-reset-token",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/auth/verify-password-reset-token?token=...", "host": ["{{baseUrl}}"], "path": ["api","auth","verify-password-reset-token"] } }
+        },
+        {
+          "name": "POST /api/auth/reset-password",
+          "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"token\": \"...\",\n  \"newPassword\": \"newpass123\"\n}" }, "url": { "raw": "{{baseUrl}}/api/auth/reset-password", "host": ["{{baseUrl}}"], "path": ["api","auth","reset-password"] } }
+        },
+        {
+          "name": "GET /api/auth/users/me",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/auth/users/me", "host": ["{{baseUrl}}"], "path": ["api","auth","users","me"] } }
+        },
+        {
+          "name": "PUT /api/auth/users/:userId/disabled (admin)",
+          "request": { "method": "PUT", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{baseUrl}}/api/auth/users/123/disabled", "host": ["{{baseUrl}}"], "path": ["api","auth","users","123","disabled"] } }
+        },
+        {
+          "name": "PUT /api/auth/users/:userId/enable (admin)",
+          "request": { "method": "PUT", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/auth/users/123/enable", "host": ["{{baseUrl}}"], "path": ["api","auth","users","123","enable"] } }
+        },
+        {
+          "name": "DELETE /api/auth/users/:userId/soft-delete (admin)",
+          "request": { "method": "DELETE", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/auth/users/123/soft-delete", "host": ["{{baseUrl}}"], "path": ["api","auth","users","123","soft-delete"] } }
+        },
+        {
+          "name": "PUT /api/auth/users/:userId/restore",
+          "request": { "method": "PUT", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/auth/users/123/restore", "host": ["{{baseUrl}}"], "path": ["api","auth","users","123","restore"] } }
+        },
+        {
+          "name": "GET /api/auth/users/leaderboard",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/auth/users/leaderboard", "host": ["{{baseUrl}}"], "path": ["api","auth","users","leaderboard"] } }
+        }
+      ]
+    },
+    {
+      "name": "Tags",
+      "item": [
+        { "name": "GET /api/tags", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/tags", "host": ["{{baseUrl}}"], "path": ["api","tags"] } } },
+        { "name": "GET /api/tags/:id", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/tags/123", "host": ["{{baseUrl}}"], "path": ["api","tags","123"] } } },
+        { "name": "POST /api/tags", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ], "body": { "mode": "raw", "raw": "{ \"name\": \"example-tag\" }" }, "url": { "raw": "{{baseUrl}}/api/tags", "host": ["{{baseUrl}}"], "path": ["api","tags"] } } },
+        { "name": "PUT /api/tags/:id", "request": { "method": "PUT", "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ], "body": { "mode": "raw", "raw": "{ \"name\": \"renamed\" }" }, "url": { "raw": "{{baseUrl}}/api/tags/123", "host": ["{{baseUrl}}"], "path": ["api","tags","123"] } } },
+        { "name": "DELETE /api/tags/:id", "request": { "method": "DELETE", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/tags/123", "host": ["{{baseUrl}}"], "path": ["api","tags","123"] } } }
+      ]
+    },
+    {
+      "name": "Prompts",
+      "item": [
+        { "name": "POST /api/prompts", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ], "body": { "mode": "raw", "raw": "{ \"title\": \"My prompt\", \"content\": \"Write a short poem\" }" }, "url": { "raw": "{{baseUrl}}/api/prompts", "host": ["{{baseUrl}}"], "path": ["api","prompts"] } } },
+        { "name": "GET /api/prompts/public", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/prompts/public", "host": ["{{baseUrl}}"], "path": ["api","prompts","public"] } } },
+        { "name": "GET /api/prompts/search", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/prompts/search?q=poem", "host": ["{{baseUrl}}"], "path": ["api","prompts","search"] } } },
+        { "name": "GET /api/prompts/admin (admin)", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/prompts/admin", "host": ["{{baseUrl}}"], "path": ["api","prompts","admin"] } } },
+        { "name": "GET /api/prompts/:id", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/prompts/123", "host": ["{{baseUrl}}"], "path": ["api","prompts","123"] } } },
+        { "name": "PUT /api/prompts/:id", "request": { "method": "PUT", "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ], "body": { "mode": "raw", "raw": "{ \"title\": \"Updated\" }" }, "url": { "raw": "{{baseUrl}}/api/prompts/123", "host": ["{{baseUrl}}"], "path": ["api","prompts","123"] } } },
+        { "name": "DELETE /api/prompts/:id", "request": { "method": "DELETE", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/prompts/123", "host": ["{{baseUrl}}"], "path": ["api","prompts","123"] } } },
+        { "name": "POST /api/prompts/:id/like", "request": { "method": "POST", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/prompts/123/like", "host": ["{{baseUrl}}"], "path": ["api","prompts","123","like"] } } },
+        { "name": "POST /api/prompts/:id/dislike", "request": { "method": "POST", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/prompts/123/dislike", "host": ["{{baseUrl}}"], "path": ["api","prompts","123","dislike"] } } },
+        { "name": "GET /api/prompts/:id/likes", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/prompts/123/likes", "host": ["{{baseUrl}}"], "path": ["api","prompts","123","likes"] } } },
+        { "name": "POST /api/prompts/:id/report", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ], "body": { "mode": "raw", "raw": "{ \"reason\": \"inappropriate\" }" }, "url": { "raw": "{{baseUrl}}/api/prompts/123/report", "host": ["{{baseUrl}}"], "path": ["api","prompts","123","report"] } } },
+        { "name": "POST /api/prompts/:id/comments", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ], "body": { "mode": "raw", "raw": "{ \"content\": \"Nice prompt!\" }" }, "url": { "raw": "{{baseUrl}}/api/prompts/123/comments", "host": ["{{baseUrl}}"], "path": ["api","prompts","123","comments"] } } },
+        { "name": "GET /api/prompts/:id/comments", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/prompts/123/comments", "host": ["{{baseUrl}}"], "path": ["api","prompts","123","comments"] } } },
+        { "name": "DELETE /api/prompts/:id/comments/:commentId", "request": { "method": "DELETE", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/prompts/123/comments/456", "host": ["{{baseUrl}}"], "path": ["api","prompts","123","comments","456"] } } },
+        { "name": "PUT /api/prompts/:id/comments/:commentId", "request": { "method": "PUT", "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ], "body": { "mode": "raw", "raw": "{ \"content\": \"Updated comment\" }" }, "url": { "raw": "{{baseUrl}}/api/prompts/123/comments/456", "host": ["{{baseUrl}}"], "path": ["api","prompts","123","comments","456"] } } },
+        { "name": "GET /api/prompts/versions/:id", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/prompts/versions/789", "host": ["{{baseUrl}}"], "path": ["api","prompts","versions","789"] } } },
+        { "name": "GET /api/prompts/:promptId/versions", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/prompts/123/versions", "host": ["{{baseUrl}}"], "path": ["api","prompts","123","versions"] } } },
+        { "name": "DELETE /api/prompts/:promptId/versions/:versionNumber", "request": { "method": "DELETE", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/prompts/123/versions/1", "host": ["{{baseUrl}}"], "path": ["api","prompts","123","versions","1"] } } }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        { "name": "GET /api/users/profile", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/users/profile", "host": ["{{baseUrl}}"], "path": ["api","users","profile"] } } },
+        { "name": "PUT /api/users/profile", "request": { "method": "PUT", "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ], "body": { "mode": "raw", "raw": "{ \"displayName\": \"New Name\" }" }, "url": { "raw": "{{baseUrl}}/api/users/profile", "host": ["{{baseUrl}}"], "path": ["api","users","profile"] } } }
+      ]
+    },
+    {
+      "name": "Files",
+      "item": [
+        { "name": "GET /api/files/job/:jobId", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/files/job/abc123", "host": ["{{baseUrl}}"], "path": ["api","files","job","abc123"] } } },
+        { "name": "GET /api/files/queue/stats", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/files/queue/stats", "host": ["{{baseUrl}}"], "path": ["api","files","queue","stats"] } } }
+      ]
+    }
+  ]
+}
