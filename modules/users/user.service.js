@@ -49,8 +49,8 @@ class UserService {
    * @param {Object} data - Nouvelles données de l'utilisateur.
    * @returns {Promise<Object|null>} Utilisateur mis à jour ou null si non trouvé.
    */
-  async updateUser(id, data) {
-    return userRepository.update(id, data);
+  async updateUser(user, data) {
+    return userRepository.update(user, data);
   }
 
   /**

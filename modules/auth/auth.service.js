@@ -23,6 +23,7 @@ class AuthService {
    * @param {Object} user - Objet utilisateur brut venant de la base de données
    * @returns {Object} - Utilisateur formaté sans les informations sensibles (ex: mot de passe)
    */
+
   _formateUser(user) {
     return {
       id: user.id,
@@ -51,12 +52,13 @@ class AuthService {
    * @returns {Object} - L'utilisateur nouvellement créé
    */
   async _createNewUser({ email, username, hashedPassword }) {
-    return await userService.createUser({
+    const newUser = await userService.createUser({
       email,
       username,
       password: hashedPassword,
       emailVerified: false,
     });
+    return newUser;
   }
 
   /**
@@ -198,7 +200,7 @@ class AuthService {
     const { email, username, password } = data;
     await this._ensureEmailIsAvailable(email);
     const hashedPassword = await hashPassword(password);
-    const user = this._createNewUser({ email, username, hashedPassword });
+    const user = await this._createNewUser({ email, username, hashedPassword });
     const emailResult = await this._sendVerficationEmail(user);
     return {
       user: this._formateUser(user),
