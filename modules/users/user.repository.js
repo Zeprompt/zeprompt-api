@@ -31,7 +31,19 @@ class UserRepository {
 
   async findUserProfile(userId) {
     return await User.findByPk(userId, {
-      attributes: ["id", "username", "email", "role", "createdAt"],
+      // Inclure les champs de profil publics pour la réponse
+      attributes: [
+        "id",
+        "username",
+        "email",
+        "role",
+        "createdAt",
+        "profilePicture",
+        "githubUrl",
+        "linkedinUrl",
+        "whatsappNumber",
+        "twitterUrl",
+      ],
       include: [
         {
           model: Prompt,

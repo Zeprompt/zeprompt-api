@@ -31,8 +31,11 @@ class AuthService {
       username: user.username,
       role: user.role,
       emailVerified: user.emailVerified,
-      avatar: user.avatar || null,
-      bio: user.bio || null,
+      profilePicture: user.profilePicture || null,
+      githubUrl: user.githubUrl || null,
+      linkedinUrl: user.linkedinUrl || null,
+      whatsappNumber: user.whatsappNumber || null,
+      twitterUrl: user.twitterUrl || null,
     };
   }
 
@@ -390,9 +393,22 @@ class AuthService {
    * @returns {Object} - Message et profil mis à jour
    */
   async updateUserProfile(userId, updateData) {
-    const allowedFields = ["username", "email", "avatar", "bio"];
+    const allowedFields = [
+      "username",
+      "email",
+      "profilePicture",
+      "githubUrl",
+      "linkedinUrl",
+      "whatsappNumber",
+      "twitterUrl"
+    ];
     const dataToUpdate = this._filterAllowedFields(updateData, allowedFields);
-    const updatedUser = await userService.updateUser(userId, dataToUpdate);
+    
+    // Récupérer l'utilisateur d'abord
+    const user = await this._findUserByIdOrThrow(userId);
+    
+    // Mettre à jour l'utilisateur
+    const updatedUser = await userService.updateUser(user, dataToUpdate);
     if (!updatedUser) throw Errors.updateFailed();
     return {
       message: "Profile mis à jour avec succès.",
