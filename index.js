@@ -23,7 +23,34 @@ const { initSocket } = require("./config/socket");
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+// Configuration CORS
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Autoriser les requêtes sans origine (comme Postman, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Liste des origines autorisées
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      process.env.FRONTEND_URL
+    ].filter(Boolean); // Retirer les valeurs undefined
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      logger.warn(`⚠️ CORS: Origine non autorisée: ${origin}`);
+      callback(null, true); // En développement, on autorise quand même
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400 // 24 heures
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Sécurité HTTP avec Helmet
