@@ -23,6 +23,7 @@ class AuthService {
    * @param {Object} user - Objet utilisateur brut venant de la base de données
    * @returns {Object} - Utilisateur formaté sans les informations sensibles (ex: mot de passe)
    */
+
   _formateUser(user) {
     return {
       id: user.id,
@@ -30,8 +31,11 @@ class AuthService {
       username: user.username,
       role: user.role,
       emailVerified: user.emailVerified,
-      avatar: user.avatar || null,
-      bio: user.bio || null,
+      profilePicture: user.profilePicture || null,
+      githubUrl: user.githubUrl || null,
+      linkedinUrl: user.linkedinUrl || null,
+      whatsappNumber: user.whatsappNumber || null,
+      twitterUrl: user.twitterUrl || null,
     };
   }
 
@@ -51,12 +55,13 @@ class AuthService {
    * @returns {Object} - L'utilisateur nouvellement créé
    */
   async _createNewUser({ email, username, hashedPassword }) {
-    return await userService.createUser({
+    const newUser = await userService.createUser({
       email,
       username,
       password: hashedPassword,
       emailVerified: false,
     });
+    return newUser;
   }
 
   /**
@@ -198,7 +203,7 @@ class AuthService {
     const { email, username, password } = data;
     await this._ensureEmailIsAvailable(email);
     const hashedPassword = await hashPassword(password);
-    const user = this._createNewUser({ email, username, hashedPassword });
+    const user = await this._createNewUser({ email, username, hashedPassword });
     const emailResult = await this._sendVerficationEmail(user);
     return {
       user: this._formateUser(user),
@@ -265,7 +270,7 @@ class AuthService {
    */
   async requestPasswordReset(email) {
     const user = await this._findUserByEmailOrThrow(email);
-    const resetToken = this._generateResetToken(user.email);
+    const resetToken = await this._generateResetToken(user.email);
     const resetUrl = this._buildResetUrl(user.email, resetToken);
     await this._queueResetPasswordEmail(user, resetUrl);
     return { message: "Email de réinitialisation envoyé." };
@@ -388,9 +393,22 @@ class AuthService {
    * @returns {Object} - Message et profil mis à jour
    */
   async updateUserProfile(userId, updateData) {
-    const allowedFields = ["username", "email", "avatar", "bio"];
+    const allowedFields = [
+      "username",
+      "email",
+      "profilePicture",
+      "githubUrl",
+      "linkedinUrl",
+      "whatsappNumber",
+      "twitterUrl"
+    ];
     const dataToUpdate = this._filterAllowedFields(updateData, allowedFields);
-    const updatedUser = await userService.updateUser(userId, dataToUpdate);
+    
+    // Récupérer l'utilisateur d'abord
+    const user = await this._findUserByIdOrThrow(userId);
+    
+    // Mettre à jour l'utilisateur
+    const updatedUser = await userService.updateUser(user, dataToUpdate);
     if (!updatedUser) throw Errors.updateFailed();
     return {
       message: "Profile mis à jour avec succès.",

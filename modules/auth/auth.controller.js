@@ -265,7 +265,47 @@ const authService = require("./auth.service");
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/User'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Profil récupéré avec succès."
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         username:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         role:
+ *                           type: string
+ *                           enum: [user, admin]
+ *                         emailVerified:
+ *                           type: boolean
+ *                         profilePicture:
+ *                           type: string
+ *                           nullable: true
+ *                         githubUrl:
+ *                           type: string
+ *                           nullable: true
+ *                         linkedinUrl:
+ *                           type: string
+ *                           nullable: true
+ *                         whatsappNumber:
+ *                           type: string
+ *                           nullable: true
+ *                         twitterUrl:
+ *                           type: string
+ *                           nullable: true
  */
 
 /**
@@ -290,9 +330,77 @@ const authService = require("./auth.service");
  *                 type: string
  *                 format: email
  *                 example: "john_new@example.com"
+ *               profilePicture:
+ *                 type: string
+ *                 nullable: true
+ *                 example: "uploads/profiles/user-123.jpg"
+ *                 description: "Chemin vers la photo de profil"
+ *               githubUrl:
+ *                 type: string
+ *                 nullable: true
+ *                 example: "https://github.com/johndoe"
+ *                 description: "URL du profil GitHub"
+ *               linkedinUrl:
+ *                 type: string
+ *                 nullable: true
+ *                 example: "https://linkedin.com/in/johndoe"
+ *                 description: "URL du profil LinkedIn"
+ *               whatsappNumber:
+ *                 type: string
+ *                 nullable: true
+ *                 example: "+33612345678"
+ *                 description: "Numéro WhatsApp"
+ *               twitterUrl:
+ *                 type: string
+ *                 nullable: true
+ *                 example: "https://twitter.com/johndoe"
+ *                 description: "URL du profil Twitter"
  *     responses:
  *       200:
  *         description: Profil mis à jour avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Profile mis à jour avec succès."
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         username:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         role:
+ *                           type: string
+ *                         emailVerified:
+ *                           type: boolean
+ *                         profilePicture:
+ *                           type: string
+ *                           nullable: true
+ *                         githubUrl:
+ *                           type: string
+ *                           nullable: true
+ *                         linkedinUrl:
+ *                           type: string
+ *                           nullable: true
+ *                         whatsappNumber:
+ *                           type: string
+ *                           nullable: true
+ *                         twitterUrl:
+ *                           type: string
+ *                           nullable: true
  */
 
 /**
