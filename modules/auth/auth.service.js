@@ -267,7 +267,7 @@ class AuthService {
    */
   async requestPasswordReset(email) {
     const user = await this._findUserByEmailOrThrow(email);
-    const resetToken = this._generateResetToken(user.email);
+    const resetToken = await this._generateResetToken(user.email);
     const resetUrl = this._buildResetUrl(user.email, resetToken);
     await this._queueResetPasswordEmail(user, resetUrl);
     return { message: "Email de réinitialisation envoyé." };
