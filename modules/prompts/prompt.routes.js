@@ -34,8 +34,11 @@ router.get("/public", (req, res, next) =>
 router.get("/search", (req, res, next) =>
   promptController.searchPrompts(req, res, next)
 );
-router.get("/admin", AuthMiddleware.authenticate, (req, res, next) =>
-  promptController.getAllPromptsForAdmin(req, res, next)
+router.get(
+  "/admin",
+  AuthMiddleware.authenticate,
+  AuthMiddleware.isAdmin,
+  (req, res, next) => promptController.getAllPromptsForAdmin(req, res, next)
 );
 // Route avec paramètre dynamique - doit être définie EN DERNIER
 router.get("/:id", (req, res, next) =>
