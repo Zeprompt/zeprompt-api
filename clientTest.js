@@ -6,7 +6,7 @@ const socket = io("http://localhost:3000", {
 });
 
 socket.on("prompt:likeUpdated", (data) => {
-  logger.info("Like updated:", data);
+  logger.info("Like updated: " + JSON.stringify(data, null, 2));
 });
 
 socket.on("connect", () => {

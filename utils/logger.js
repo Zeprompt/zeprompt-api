@@ -3,8 +3,11 @@ const { combine, timestamp, printf, colorize, errors } = format;
 require("winston-daily-rotate-file");
 
 // Format personnalisé
-const logFormat = printf(({ level, message, timestamp, stack }) => {
-  return `${timestamp} [${level}] : ${stack || message}`;
+const logFormat = printf(({ level, message, timestamp, stack, ...meta }) => {
+  const metaString = Object.keys(meta).length
+    ? JSON.stringify(meta, null, 2)
+    : "";
+  return `${timestamp} [${level}] : ${stack || message} ${metaString}`;
 });
 
 const logger = createLogger({
