@@ -171,7 +171,7 @@ class PromptService {
     const cachedPrompts = await CacheService.get(cacheKey);
 
     // Retourne le cache si disponible
-    if (cachedPrompts) return JSON.parse(cachedPrompts);
+    if (cachedPrompts) return cachedPrompts;
 
     // Sinon récupère depuis la DB
     const prompts = await promptRepository.getAllPrompts({ page, limit });

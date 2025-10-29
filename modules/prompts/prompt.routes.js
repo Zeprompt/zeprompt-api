@@ -8,7 +8,10 @@ const {
   createPromptSchema,
   updatePromptSchema,
 } = require("../../schemas/prompt.schema");
-const { reportPromptSchema, reportCommentSchema } = require("../../schemas/report.schema");
+const {
+  reportPromptSchema,
+  reportCommentSchema,
+} = require("../../schemas/report.schema");
 const likeController = require("../like/like.controller");
 const {
   createCommentSchema,
@@ -35,7 +38,7 @@ router.get("/admin", AuthMiddleware.authenticate, (req, res, next) =>
   promptController.getAllPromptsForAdmin(req, res, next)
 );
 // Route avec paramètre dynamique - doit être définie EN DERNIER
-router.get("/:id", AuthMiddleware.authenticate, (req, res, next) =>
+router.get("/:id", (req, res, next) =>
   promptController.getPromptById(req, res, next)
 );
 router.put(
@@ -87,7 +90,8 @@ router.delete(
 router.put(
   "/:id/comments/:commentId",
   AuthMiddleware.authenticate,
-  validate(updateCommentSchema)
+  validate(updateCommentSchema),
+  (req, res, next) => commentController.updateComment(req, res, next)
 );
 
 router.get("/:id/comments", (req, res, next) =>

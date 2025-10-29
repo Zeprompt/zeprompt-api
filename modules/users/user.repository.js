@@ -31,7 +31,19 @@ class UserRepository {
 
   async findUserProfile(userId) {
     return await User.findByPk(userId, {
-      attributes: ["id", "username", "email", "role", "createdAt"],
+      // Inclure les champs de profil publics pour la réponse
+      attributes: [
+        "id",
+        "username",
+        "email",
+        "role",
+        "createdAt",
+        "profilePicture",
+        "githubUrl",
+        "linkedinUrl",
+        "whatsappNumber",
+        "twitterUrl",
+      ],
       include: [
         {
           model: Prompt,
@@ -105,9 +117,9 @@ class UserRepository {
         ],
         [
           literal(`(
-          SELECT COUNT(*) 
-          FROM views AS v 
-          INNER JOIN prompts AS p ON v.prompt_id = p.id 
+          SELECT COUNT(*)
+          FROM views AS v
+          INNER JOIN prompts AS p ON v.prompt_id = p.id
           WHERE p.user_id = "User"."id"
         )`),
           "viewCount",
@@ -137,17 +149,24 @@ class UserRepository {
     if (!user) {
       return null;
     }
-    
+
     // Filtrer seulement les champs autorisés
-    const allowedFields = ['username', 'profilePicture', 'githubUrl', 'linkedinUrl', 'whatsappNumber', 'twitterUrl'];
+    const allowedFields = [
+      "username",
+      "profilePicture",
+      "githubUrl",
+      "linkedinUrl",
+      "whatsappNumber",
+      "twitterUrl",
+    ];
     const updateData = {};
-    
-    Object.keys(data).forEach(key => {
+
+    Object.keys(data).forEach((key) => {
       if (allowedFields.includes(key) && data[key] !== undefined) {
         updateData[key] = data[key];
       }
     });
-    
+
     await user.update(updateData);
     return user;
   }

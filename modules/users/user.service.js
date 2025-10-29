@@ -49,8 +49,8 @@ class UserService {
    * @param {Object} data - Nouvelles données de l'utilisateur.
    * @returns {Promise<Object|null>} Utilisateur mis à jour ou null si non trouvé.
    */
-  async updateUser(id, data) {
-    return userRepository.update(id, data);
+  async updateUser(user, data) {
+    return userRepository.update(user, data);
   }
 
   /**
@@ -88,7 +88,7 @@ class UserService {
       createdAt: user.createdAt,
       promptCount: parseInt(user.get("promptCount"), 10) || 0,
       likeCount: parseInt(user.get("likeCount"), 10) || 0,
-      viewCount: parseInt(user.get("viewsCount"), 10) || 0,
+      viewCount: parseInt(user.get("viewCount"), 10) || 0,
       score: parseInt(user.get("score"), 10) || 0,
     }));
     await CacheService.set(cachKey, JSON.stringify(formatted), 600);

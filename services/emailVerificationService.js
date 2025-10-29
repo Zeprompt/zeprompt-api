@@ -43,23 +43,27 @@ class EmailVerificationService {
         verificationUrl,
       });
 
-      await emailQueue.add("sendVerificationEmail", {
-        to: user.email,
-        subject: "Vérifiez votre adresse email - ZePrompt",
-        htmlContent,
-        options: {
-          testMode,
-          recipientName: user.username,
+      await emailQueue.add(
+        "sendVerificationEmail",
+        {
+          to: user.email,
+          subject: "Vérifiez votre adresse email - ZePrompt",
+          htmlContent,
+          options: {
+            testMode,
+            recipientName: user.username,
+          },
         },
-      }, {
-        removeOnComplete: true,  // Supprime le job après succès
-        removeOnFail: true,     // On garde l'échec pour pouvoir le réessayer
-        attempts: 5,             // Nombre de tentatives avant abandon
-        backoff: {
+        {
+          removeOnComplete: true, // Supprime le job après succès
+          removeOnFail: true, // On garde l'échec pour pouvoir le réessayer
+          attempts: 5, // Nombre de tentatives avant abandon
+          backoff: {
             type: "exponential", // Attente progressive entre les tentatives
-            delay: 60000         // 1 min avant la premièe nouvelle tentative
+            delay: 60000, // 1 min avant la premièe nouvelle tentative
+          },
         }
-      });
+      );
 
       return {
         success: true,
@@ -113,7 +117,7 @@ class EmailVerificationService {
         };
       }
 
-      await userService.updateUser(user.id, { emailVerified: true });
+      await userService.updateUser(user, { emailVerified: true });
 
       return {
         success: true,
