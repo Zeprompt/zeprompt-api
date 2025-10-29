@@ -314,9 +314,9 @@ class AuthService {
    * @returns {Object} - Message et utilisateur mis à jour
    */
   async disableUser(userId) {
-    const user = this._findUserByIdOrThrow(userId);
+    const user = await this._findUserByIdOrThrow(userId);
     if (!user.active) throw Errors.userAlreadyDeactivated();
-    const updatedUser = await userService.updateUser(userId, { active: false });
+    const updatedUser = await userService.updateUser(user, { active: false });
     return {
       message: "Compte désactivé avec succès",
       user: this._formateUser(updatedUser),
@@ -329,9 +329,9 @@ class AuthService {
    * @returns {Object} - Message et utilisateur mis à jour
    */
   async enableUser(userId) {
-    const user = this._findUserByIdOrThrow(userId);
+    const user = await this._findUserByIdOrThrow(userId);
     if (user.active) throw Errors.userAlreadyActivate();
-    const updatedUser = await userService.updateUser(userId, { active: true });
+    const updatedUser = await userService.updateUser(user, { active: true });
     return {
       message: "Compte réactivé avec succès.",
       user: this._formateUser(updatedUser),
@@ -344,9 +344,9 @@ class AuthService {
    * @returns {Object} - Message et utilisateur mis à jour
    */
   async softDeleteUser(userId) {
-    const user = this._findUserByIdOrThrow(userId);
+    const user = await this._findUserByIdOrThrow(userId);
     if (user.deletedAt) throw Errors.userAlreadyDeleted();
-    const deletedUser = await userService.updateUser(userId, {
+    const deletedUser = await userService.updateUser(user, {
       deletedAt: new Date(),
     });
     return {
@@ -361,9 +361,9 @@ class AuthService {
    * @returns {Object} - Message et utilisateur restauré
    */
   async restoreUser(userId) {
-    const user = this._findUserByIdOrThrow(userId);
+    const user = await this._findUserByIdOrThrow(userId);
     if (!user.deletedAt) throw Errors.userNotDeleted();
-    const restoredUser = await userService.updateUser(userId, {
+    const restoredUser = await userService.updateUser(user, {
       deletedAt: null,
     });
     return {
