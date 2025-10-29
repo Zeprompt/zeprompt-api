@@ -482,6 +482,7 @@ class PromptController {
    *       404:
    *         description: Prompt non trouvé
    */
+
   async reportPrompt(req, res, next) {
     try {
       const { id } = req.params;

@@ -238,7 +238,7 @@ class CommentController {
 
   /**
    * @swagger
-   * /api/comments/{id}/report:
+   * /api/prompts/comments/{id}/report:
    *   post:
    *     summary: Signaler un commentaire
    *     tags: [Comments]

@@ -88,7 +88,7 @@ class UserService {
       createdAt: user.createdAt,
       promptCount: parseInt(user.get("promptCount"), 10) || 0,
       likeCount: parseInt(user.get("likeCount"), 10) || 0,
-      viewCount: parseInt(user.get("viewsCount"), 10) || 0,
+      viewCount: parseInt(user.get("viewCount"), 10) || 0,
       score: parseInt(user.get("score"), 10) || 0,
     }));
     await CacheService.set(cachKey, JSON.stringify(formatted), 600);
