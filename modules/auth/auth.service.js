@@ -330,7 +330,7 @@ class AuthService {
    */
   async enableUser(userId) {
     const user = await this._findUserByIdOrThrow(userId);
-    if (user.active) throw Errors.userAlreadyActivate();
+    if (user.active) throw Errors.userAlreadyActivated();
     const updatedUser = await userService.updateUser(user, { active: true });
     return {
       message: "Compte réactivé avec succès.",
