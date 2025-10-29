@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const authController = require("./auth.controller");
 const { registerSchema, loginSchema } = require("../../schemas/auth.schema");
+const { updateUserProfileSchema } = require("../../schemas/user.schema");
 const AuthMiddleware = require("../../middleware/auth");
 
 // Route d'inscription avec validation
@@ -66,9 +67,14 @@ router.put(
 router.get("/users/me", AuthMiddleware.authenticate, (req, res, next) => {
   authController.getProfile(req, res, next);
 });
-router.put("/users/me", AuthMiddleware.authenticate, (req, res, next) => {
-  authController.updateProfile(req, res, next);
-});
+router.put(
+  "/users/me",
+  AuthMiddleware.authenticate,
+  AuthMiddleware.validate(updateUserProfileSchema),
+  (req, res, next) => {
+    authController.updateProfile(req, res, next);
+  }
+);
 
 // --- leaderboard------
 router.get(
