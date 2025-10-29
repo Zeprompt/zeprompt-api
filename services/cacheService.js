@@ -10,7 +10,11 @@ class CacheService {
   static async get(key) {
     try {
       const value = await redisClient.get(key);
-      return value;
+      try {
+        return JSON.parse(value);
+      } catch {
+        return value;
+      }
     } catch (error) {
       logger.error(`Redis Get error for key ${key} : `, error);
       throw error;
