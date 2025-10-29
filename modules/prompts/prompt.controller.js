@@ -207,7 +207,7 @@ const AppResponse = require("../../utils/appResponse");
  *                 pageCount:
  *                   type: integer
  *
- * /api/admin/prompts:
+ * /api/prompts/admin:
  *   get:
  *     summary: Récupère tous les prompts (admin)
  *     tags: [Admin]
