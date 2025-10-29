@@ -60,6 +60,7 @@ router.delete(
 router.put(
   "/users/:userId/restore",
   AuthMiddleware.authenticate,
+  AuthMiddleware.isAdmin,
   (req, res, next) => {
     authController.restoreUser(req, res, next);
   }
