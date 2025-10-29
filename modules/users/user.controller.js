@@ -56,6 +56,7 @@ const userService = require("./user.service");
  *     security:
  *       - bearerAuth: []
  *     requestBody:
+ *       required: false
  *       content:
  *         multipart/form-data:
  *           schema:
@@ -67,19 +68,27 @@ const userService = require("./user.service");
  *                 description: Photo de profil (JPEG, PNG, GIF, WebP - max 5MB)
  *               username:
  *                 type: string
+ *                 description: Nouveau nom d'utilisateur
  *                 example: johndoe123
  *               githubUrl:
  *                 type: string
+ *                 description: URL du profil GitHub
  *                 example: https://github.com/johndoe
  *               linkedinUrl:
  *                 type: string
+ *                 description: URL du profil LinkedIn
  *                 example: https://linkedin.com/in/johndoe
  *               whatsappNumber:
  *                 type: string
+ *                 description: Numéro WhatsApp (format international)
  *                 example: +33612345678
  *               twitterUrl:
  *                 type: string
+ *                 description: URL du profil Twitter/X
  *                 example: https://twitter.com/johndoe
+ *           encoding:
+ *             profilePicture:
+ *               contentType: image/jpeg, image/png, image/gif, image/webp
  *     responses:
  *       200:
  *         description: Profil mis à jour avec succès

@@ -10,6 +10,9 @@ module.exports = function setupRateLimit(app) {
     },
     standardHeaders: true,
     legacyHeaders: false,
+    // Désactiver la vérification stricte du X-Forwarded-For
+    // utile en développement local ou sans proxy
+    trustProxy: false,
   });
 
   app.use(limiter);
