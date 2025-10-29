@@ -73,7 +73,7 @@ router.put("/users/me", AuthMiddleware.authenticate, (req, res, next) => {
 // --- leaderboard------
 router.get(
   "/users/leaderboard",
-  AuthMiddleware.authenticate,
+  // AuthMiddleware.authenticate,
   (req, res, next) => authController.getLeaderBoard(req, res, next)
 );
 

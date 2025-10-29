@@ -286,7 +286,7 @@ class AuthService {
     const redisKey = `password_reset:${email}`;
     const storedToken = await CacheService.get(redisKey);
     if (!storedToken || storedToken !== token) throw Errors.invalidToken();
-    return { valid: true, email };
+    return { valid: true, email, token: storedToken };
   }
 
   /**
@@ -300,7 +300,7 @@ class AuthService {
     this.verifyPasswordResetToken(token, email);
     const hashedPassword = await hashPassword(newPassword);
     const user = await this._findUserByEmailOrThrow(email);
-    await userService.updateUser(user.id, { password: hashedPassword });
+    await userService.updateUser(user, { password: hashedPassword });
     await CacheService.del(`password_reset:${email}`);
     return {
       succes: true,
@@ -400,13 +400,13 @@ class AuthService {
       "githubUrl",
       "linkedinUrl",
       "whatsappNumber",
-      "twitterUrl"
+      "twitterUrl",
     ];
     const dataToUpdate = this._filterAllowedFields(updateData, allowedFields);
-    
+
     // Récupérer l'utilisateur d'abord
     const user = await this._findUserByIdOrThrow(userId);
-    
+
     // Mettre à jour l'utilisateur
     const updatedUser = await userService.updateUser(user, dataToUpdate);
     if (!updatedUser) throw Errors.updateFailed();
