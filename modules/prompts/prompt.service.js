@@ -8,7 +8,9 @@ const promptVersionService = require("../promptVersion/promptVersion.service");
 const viewService = require("../view/view.service");
 const tagRepository = require("../tags/tag.repository");
 const logger = require("../../utils/logger");
-const fileUploadService = require("../../services/fileUploadService");
+const r2StorageService = require("../../services/r2StorageService");
+const fs = require("fs");
+const path = require("path");
 
 class PromptService {
   _formatFileName(originalName) {
@@ -77,60 +79,84 @@ class PromptService {
         await prompt.setTags(tagInstances, { transaction: t });
       }
       
-      // Si c'est un prompt PDF, ajouter à la queue pour traitement
-      if (data.contentType === 'pdf' && data.pdfFilePath) {
-        await fileUploadService.processPdfPrompt(
-          data.pdfFilePath,
-          data.userId,
-          {
-            promptId: prompt.id,
-            title: prompt.title,
-            originalName: data.pdfOriginalName,
-            fileSize: data.pdfFileSize,
-          }
-        );
-        logger.info(`📄 PDF ajouté à la queue pour traitement: ${prompt.id}`);
-      }
-      
-      // Si une image est attachée (pour prompts texte), ajouter à la queue pour optimisation
-      if (data.contentType === 'text' && data.imagePath) {
+      // Si c'est un prompt PDF, uploader directement vers R2 de manière synchrone
+      if (data.contentType === 'pdf' && data.pdfFilePath && fs.existsSync(data.pdfFilePath)) {
         try {
-          await fileUploadService.processPromptImage(
-            data.imagePath,
-            data.userId,
-            {
-              promptId: prompt.id,
-              title: prompt.title,
-              originalName: data.imageOriginalName,
-              fileSize: data.imageFileSize,
-              isSecondImage: false,
-            }
-          );
-          logger.info(`🖼️ Image de prompt ajoutée à la queue pour traitement: ${prompt.id}`);
+          const filename = path.basename(data.pdfFilePath);
+          const r2Key = r2StorageService.generateKey("prompts/pdfs", data.userId, filename);
+          const result = await r2StorageService.uploadPDF(data.pdfFilePath, r2Key);
+          
+          prompt.pdfUrl = result.url;
+          await prompt.save({ transaction: t });
+          
+          // Supprimer le fichier local après upload réussi
+          fs.unlinkSync(data.pdfFilePath);
+          logger.info(`📄 PDF uploadé vers R2: ${result.url}`);
         } catch (error) {
-          logger.error(`❌ Erreur lors de l'ajout de l'image à la queue: ${error.message}`);
-          // Continue quand même, l'image sera utilisée même si le traitement échoue
+          logger.error(`❌ Erreur upload PDF R2: ${error.message}`);
+          throw error;
         }
       }
       
-      // Si une deuxième image est attachée (pour prompts texte), ajouter à la queue pour optimisation
-      if (data.contentType === 'text' && data.imagePath2) {
+      // Si une image est attachée (pour prompts texte), uploader directement vers R2
+      if (data.contentType === 'text' && data.imagePath && fs.existsSync(data.imagePath)) {
         try {
-          await fileUploadService.processPromptImage(
-            data.imagePath2,
-            data.userId,
+          const filename = path.basename(data.imagePath);
+          const r2Key = r2StorageService.generateKey("prompts/images", data.userId, filename);
+          const result = await r2StorageService.uploadImageWithThumbnail(
+            data.imagePath,
+            r2Key,
             {
-              promptId: prompt.id,
-              title: prompt.title,
-              originalName: data.imageOriginalName2,
-              fileSize: data.imageFileSize2,
-              isSecondImage: true,
+              imageWidth: 1200,
+              imageHeight: 1200,
+              imageQuality: 90,
+              thumbWidth: 300,
+              thumbHeight: 300,
+              thumbQuality: 85,
             }
           );
-          logger.info(`🖼️ Image 2 de prompt ajoutée à la queue pour traitement: ${prompt.id}`);
+          
+          prompt.imageUrl = result.image.url;
+          prompt.thumbnailUrl = result.thumbnail.url;
+          await prompt.save({ transaction: t });
+          
+          // Supprimer le fichier local après upload réussi
+          fs.unlinkSync(data.imagePath);
+          logger.info(`🖼️ Image uploadée vers R2: ${result.image.url}`);
         } catch (error) {
-          logger.error(`❌ Erreur lors de l'ajout de l'image 2 à la queue: ${error.message}`);
-          // Continue quand même, l'image sera utilisée même si le traitement échoue
+          logger.error(`❌ Erreur upload image R2: ${error.message}`);
+          throw error;
+        }
+      }
+      
+      // Si une deuxième image est attachée (pour prompts texte), uploader directement vers R2
+      if (data.contentType === 'text' && data.imagePath2 && fs.existsSync(data.imagePath2)) {
+        try {
+          const filename = path.basename(data.imagePath2);
+          const r2Key = r2StorageService.generateKey("prompts/images", data.userId, filename);
+          const result = await r2StorageService.uploadImageWithThumbnail(
+            data.imagePath2,
+            r2Key,
+            {
+              imageWidth: 1200,
+              imageHeight: 1200,
+              imageQuality: 90,
+              thumbWidth: 300,
+              thumbHeight: 300,
+              thumbQuality: 85,
+            }
+          );
+          
+          prompt.imageUrl2 = result.image.url;
+          prompt.thumbnailUrl2 = result.thumbnail.url;
+          await prompt.save({ transaction: t });
+          
+          // Supprimer le fichier local après upload réussi
+          fs.unlinkSync(data.imagePath2);
+          logger.info(`🖼️ Image 2 uploadée vers R2: ${result.image.url}`);
+        } catch (error) {
+          logger.error(`❌ Erreur upload image 2 R2: ${error.message}`);
+          throw error;
         }
       }
       

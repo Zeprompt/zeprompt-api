@@ -1,11 +1,27 @@
 const multer = require("multer");
 const logger = require("../utils/logger");
+const fs = require("fs");
+const path = require("path");
 
 /**
  * Middleware conditionnel pour l'upload de fichiers (PDF et images)
  * Gère l'upload de PDF pour les prompts de type "pdf"
  * Gère l'upload d'images pour les prompts de type "text" (facultatif)
  */
+
+// S'assurer que les dossiers d'upload existent
+function ensureDir(dir) {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    logger.info(`📁 Dossier créé: ${dir}`);
+  }
+}
+
+// Créer les dossiers nécessaires au démarrage
+ensureDir(path.resolve(process.cwd(), 'uploads', 'pdfs'));
+ensureDir(path.resolve(process.cwd(), 'uploads', 'prompts', 'images'));
+ensureDir(path.resolve(process.cwd(), 'uploads', 'profiles'));
+
 function conditionalPdfUpload(req, res, next) {
   // Si c'est un multipart/form-data (avec fichier)
   const contentType = req.get("content-type") || "";
@@ -24,14 +40,19 @@ function conditionalPdfUpload(req, res, next) {
   const upload = multer({
     storage: multer.diskStorage({
       destination: (req, file, cb) => {
+        let uploadPath;
         // Choisir le bon dossier selon le type de fichier
         if (file.fieldname === 'pdf') {
-          cb(null, require('path').resolve(process.cwd(), 'uploads', 'pdfs'));
+          uploadPath = path.resolve(process.cwd(), 'uploads', 'pdfs');
         } else if (file.fieldname === 'image' || file.fieldname === 'image2') {
-          cb(null, require('path').resolve(process.cwd(), 'uploads', 'prompts', 'images'));
+          uploadPath = path.resolve(process.cwd(), 'uploads', 'prompts', 'images');
         } else {
-          cb(new Error('Field name inconnu'));
+          return cb(new Error('Field name inconnu'));
         }
+        
+        // S'assurer que le dossier existe (double sécurité)
+        ensureDir(uploadPath);
+        cb(null, uploadPath);
       },
       filename: (req, file, cb) => {
         const safeName = file.originalname.replace(/[^a-zA-Z0-9_.-]/g, '_');
