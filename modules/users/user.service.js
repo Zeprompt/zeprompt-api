@@ -1,7 +1,7 @@
 const CacheService = require("../../services/cacheService");
 const userRepository = require("./user.repository");
-const fileUploadService = require("../../services/fileUploadService");
 const logger = require("../../utils/logger");
+const r2StorageService = require("../../services/r2StorageService");
 
 /**
  * Service pour la gestion des utilisateurs.
@@ -63,11 +63,14 @@ class UserService {
   }
 
   async getUserProfile(userId) {
+    const { normalizeImageUrl } = require("../../utils/imageUrlNormalizer");
     const user = await userRepository.findUserProfile(userId);
     if (!user) return null;
     const stats = await userRepository.getUserStats(userId);
+    const userJson = user.toJSON();
     return {
-      ...user.toJSON(),
+      ...userJson,
+      profilePicture: normalizeImageUrl(userJson.profilePicture),
       stats,
     };
   }
@@ -104,25 +107,43 @@ class UserService {
    */
   async updateUserProfile(userId, profileData, profilePicturePath = null) {
     const updateData = { ...profileData };
+    const fs = require("fs");
+    const path = require("path");
     
-    // Ajouter le chemin de la photo si fourni
-    if (profilePicturePath) {
-      updateData.profilePicture = profilePicturePath;
-      
-      // Ajouter à la queue pour optimisation de l'image
+    // Si un fichier est uploadé, uploader directement vers R2 de manière synchrone
+    if (profilePicturePath && fs.existsSync(profilePicturePath)) {
       try {
-        await fileUploadService.processProfilePicture(
+        // Générer la clé R2
+        const filename = path.basename(profilePicturePath);
+        const r2Key = r2StorageService.generateKey("profiles", userId, filename);
+        
+        // Upload l'image optimisée avec thumbnail vers R2
+        const result = await r2StorageService.uploadImageWithThumbnail(
           profilePicturePath,
-          userId,
+          r2Key,
           {
-            username: profileData.username || updateData.username,
-            uploadedAt: new Date().toISOString(),
+            imageWidth: 800,
+            imageHeight: 800,
+            imageQuality: 85,
+            thumbWidth: 150,
+            thumbHeight: 150,
+            thumbQuality: 80,
           }
         );
-        logger.info(` Image de profil ajoutée à la queue pour traitement: ${userId}`);
+        
+        // Mettre à jour l'URL R2 dans les données
+        updateData.profilePicture = result.image.url;
+        
+        // Supprimer le fichier local après upload réussi
+        if (fs.existsSync(profilePicturePath)) {
+          fs.unlinkSync(profilePicturePath);
+          logger.info(` Fichier local supprimé: ${profilePicturePath}`);
+        }
+        
+        logger.info(` Image de profil uploadée vers R2: ${result.image.url}`);
       } catch (error) {
-        logger.error(` Erreur lors de l'ajout de l'image à la queue: ${error.message}`);
-        // Continue quand même, l'image sera utilisée même si le traitement échoue
+        logger.error(` Erreur lors de l'upload R2: ${error.message}`);
+        throw new Error(`Erreur lors de l'upload de l'image: ${error.message}`);
       }
     }
     
@@ -133,6 +154,7 @@ class UserService {
       }
     });
     
+    // Mettre à jour la DB avec les données (incluant l'URL R2 si uploadé)
     const updatedUser = await userRepository.updateUserProfile(userId, updateData);
     
     if (!updatedUser) {
@@ -140,8 +162,10 @@ class UserService {
     }
     
     // Retourner l'utilisateur sans le mot de passe
+    const { normalizeImageUrl } = require("../../utils/imageUrlNormalizer");
     const userJson = updatedUser.toJSON();
     delete userJson.password;
+    userJson.profilePicture = normalizeImageUrl(userJson.profilePicture);
     return userJson;
   }
 }

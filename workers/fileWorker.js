@@ -4,6 +4,7 @@ const logger = require("../utils/logger");
 const fs = require("fs");
 const path = require("path");
 const r2StorageService = require("../services/r2StorageService");
+const { User } = require("../models");
 
 /**
  * Worker pour traiter les uploads de fichiers
@@ -81,6 +82,13 @@ async function processProfilePicture(filePath, userId) {
         thumbQuality: 80,
       }
     );
+
+    // Mettre à jour la base de données avec l'URL R2
+    await User.update(
+      { profilePicture: result.image.url },
+      { where: { id: userId } }
+    );
+    logger.info(` Base de données mise à jour avec l'URL R2 pour l'utilisateur ${userId}`);
 
     // Supprimer le fichier local après upload réussi
     if (fs.existsSync(filePath)) {

@@ -6,6 +6,7 @@ const emailQueue = require("../../queues/emailQueue");
 const generateResetPasswordEmailTemplate = require("../../templates/resentPasswordEmail");
 const CacheService = require("../../services/cacheService");
 const Errors = require("./auth.errors");
+const { normalizeImageUrl } = require("../../utils/imageUrlNormalizer");
 
 /**
  * Service d'authentification
@@ -31,7 +32,7 @@ class AuthService {
       username: user.username,
       role: user.role,
       emailVerified: user.emailVerified,
-      profilePicture: user.profilePicture || null,
+      profilePicture: normalizeImageUrl(user.profilePicture),
       githubUrl: user.githubUrl || null,
       linkedinUrl: user.linkedinUrl || null,
       whatsappNumber: user.whatsappNumber || null,

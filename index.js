@@ -66,6 +66,10 @@ setupRateLimit(app);
 const server = http.createServer(app);
 initSocket(server);
 
+// Servir les fichiers statiques d'upload (pour le développement)
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 app.use("/api/auth", authRoutes);
 app.use("/api/tags", tagRoutes);
 app.use("/api/prompts", promptRoutes);
