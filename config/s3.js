@@ -1,4 +1,4 @@
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand } = require("@aws-sdk/client-s3");
 require("dotenv").config();
 
 const s3Client = new S3Client({
@@ -10,4 +10,10 @@ const s3Client = new S3Client({
   },
 });
 
-module.exports = { s3Client, PutObjectCommand };
+module.exports = { 
+  s3Client, 
+  PutObjectCommand, 
+  DeleteObjectCommand, 
+  GetObjectCommand, 
+  HeadObjectCommand 
+};
