@@ -1,5 +1,6 @@
 const promptService = require("./prompt.service");
 const AppResponse = require("../../utils/appResponse");
+const logger = require("../../utils/logger");
 
 /**
  * @openapi
@@ -307,11 +308,16 @@ class PromptController {
 
   async createPrompt(req, res, next) {
     try {
+      logger.info('🎯 Controller: Création de prompt appelé');
+      logger.info(`📝 Controller: Body keys - ${Object.keys(req.body).join(', ')}`);
+      
       const prompt = await promptService.createPrompt({
         ...req.body,
         userId: req.user.id,
       });
 
+      logger.info(`✅ Controller: Prompt créé avec succès - ID: ${prompt.id}`);
+      
       new AppResponse({
         message: "Prompt créé avec succès.",
         statusCode: 201,
@@ -320,6 +326,7 @@ class PromptController {
         success: true,
       }).send(res);
     } catch (error) {
+      logger.error(`❌ Controller: Erreur lors de la création - ${error.message}`);
       next(error);
     }
   }

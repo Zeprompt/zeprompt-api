@@ -1,4 +1,5 @@
 const multer = require("multer");
+const logger = require("../utils/logger");
 
 /**
  * Middleware conditionnel pour l'upload de fichiers (PDF et images)
@@ -9,10 +10,15 @@ function conditionalPdfUpload(req, res, next) {
   // Si c'est un multipart/form-data (avec fichier)
   const contentType = req.get("content-type") || "";
   
+  logger.info(`📤 Middleware upload - Content-Type: ${contentType}`);
+  
   if (!contentType.includes("multipart/form-data")) {
     // Pas de fichier, continuer normalement (pour les prompts texte sans image)
+    logger.info('📤 Pas de multipart/form-data, passage au middleware suivant');
     return next();
   }
+  
+  logger.info('📤 Multipart/form-data détecté, configuration de multer...');
 
   // Créer un upload qui gère à la fois PDF et image
   const upload = multer({
@@ -61,6 +67,7 @@ function conditionalPdfUpload(req, res, next) {
 
   upload(req, res, (err) => {
     if (err instanceof multer.MulterError) {
+      logger.error(`❌ Erreur Multer: ${err.code} - ${err.message}`);
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(400).json({ 
           message: 'Fichier trop volumineux. Taille maximale : 20MB pour PDF, 5MB pour images',
@@ -76,9 +83,11 @@ function conditionalPdfUpload(req, res, next) {
       return res.status(400).json({ message: 'Erreur lors de l\'upload', code: err.code });
     }
     if (err) {
+      logger.error(`❌ Erreur inattendue upload: ${err.message}`);
       return res.status(500).json({ message: 'Erreur inattendue lors de l\'upload' });
     }
 
+    logger.info('✅ Upload réussi, traitement des fichiers...');
     // Traiter les fichiers uploadés
     if (req.files) {
       // PDF uploadé
@@ -105,6 +114,8 @@ function conditionalPdfUpload(req, res, next) {
         req.body.imageOriginalName2 = image2File.originalname;
         req.body.imageFileSize2 = image2File.size;
       }
+      
+      logger.info(`✅ Fichiers traités - PDF: ${!!req.files.pdf}, Image: ${!!req.files.image}, Image2: ${!!req.files.image2}`);
     }
     
     next();
