@@ -294,6 +294,54 @@ Content-Type: multipart/form-data
 
 ---
 
+## 📋 Exemples d'utilisation
+
+### Prompts texte avec images
+
+```bash
+POST /api/prompts
+Content-Type: multipart/form-data
+
+# Avec 1 image
+{
+  "title": "Mon prompt texte",
+  "content": "Mon contenu",
+  "contentType": "text",
+  "image": <fichier-image.jpg>  # Image facultative
+}
+
+# Avec 2 images
+{
+  "title": "Mon prompt texte",
+  "content": "Mon contenu",
+  "contentType": "text",
+  "image": <fichier-image1.jpg>,    # Image 1 facultative
+  "image2": <fichier-image2.jpg>    # Image 2 facultative
+}
+
+# Sans image
+{
+  "title": "Mon prompt texte",
+  "content": "Mon contenu",
+  "contentType": "text"
+}
+```
+
+### Prompts PDF
+
+```bash
+POST /api/prompts
+Content-Type: multipart/form-data
+
+{
+  "title": "Mon prompt PDF",
+  "contentType": "pdf",
+  "pdf": <fichier.pdf>  # PDF requis
+}
+```  
+
+---
+
 ## 📚 Fichiers modifiés
 
 - ✅ `migrations/20251030000000-add-pdf-url-to-prompts.js` (créé)

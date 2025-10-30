@@ -12,6 +12,7 @@ module.exports = function setupHelmet(app) {
         },
       },
       crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: false,
     })
   );
 

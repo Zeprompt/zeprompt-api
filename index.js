@@ -27,7 +27,10 @@ const port = process.env.PORT || 3000;
 const corsOptions = {
   origin: function (origin, callback) {
     // Autoriser les requêtes sans origine (comme Postman, curl, etc.)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      logger.info('✅ CORS: Requête sans origine autorisée');
+      return callback(null, true);
+    }
     
     // Liste des origines autorisées
     const allowedOrigins = [
@@ -37,6 +40,7 @@ const corsOptions = {
     ].filter(Boolean); // Retirer les valeurs undefined
     
     if (allowedOrigins.indexOf(origin) !== -1) {
+      logger.info(`✅ CORS: Origine autorisée: ${origin}`);
       callback(null, true);
     } else {
       logger.warn(`⚠️ CORS: Origine non autorisée: ${origin}`);
@@ -45,23 +49,33 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
+  ],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
   maxAge: 86400 // 24 heures
 };
 
+// Configuration du trust proxy pour express-rate-limit
+// Permet de récupérer correctement l'IP des clients derrière un proxy/load balancer
+app.set('trust proxy', 1);
+
+// Sécurité HTTP avec Helmet (avant CORS pour éviter les conflits)
+setupHelmet(app);
+
+// Configuration CORS (après Helmet)
 app.use(cors(corsOptions));
 
 // Augmentation de la limite de taille du body pour les uploads d'images en base64
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Configuration du trust proxy pour express-rate-limit
-// Permet de récupérer correctement l'IP des clients derrière un proxy/load balancer
-app.set('trust proxy', 1);
-
-// Sécurité HTTP avec Helmet
-setupHelmet(app);
 setupRateLimit(app);
 const server = http.createServer(app);
 initSocket(server);
