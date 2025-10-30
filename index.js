@@ -53,9 +53,9 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Configuration du trust proxy (désactivé en développement local)
-// Activer uniquement si derrière un reverse proxy (nginx, etc.)
-app.set('trust proxy', false);
+// Configuration du trust proxy pour express-rate-limit
+// Permet de récupérer correctement l'IP des clients derrière un proxy/load balancer
+app.set('trust proxy', 1);
 
 // Sécurité HTTP avec Helmet
 setupHelmet(app);
