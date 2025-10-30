@@ -3,11 +3,11 @@ const redisConnection = require("../config/redis");
 const logger = require("../utils/logger");
 const fs = require("fs");
 const path = require("path");
-const sharp = require("sharp");
+const r2StorageService = require("../services/r2StorageService");
 
 /**
  * Worker pour traiter les uploads de fichiers
- * Gère les images de profil et les PDFs
+ * Gère les images de profil, les PDFs et upload vers Cloudflare R2
  */
 const fileWorker = new Worker(
   "fileQueue",
@@ -17,17 +17,19 @@ const fileWorker = new Worker(
     logger.info(` File worker started for type: ${type}`);
 
     try {
+      let result;
+      
       switch (type) {
         case "profile_picture":
-          await processProfilePicture(filePath, userId, metadata);
+          result = await processProfilePicture(filePath, userId, metadata);
           break;
 
         case "pdf_prompt":
-          await processPdfPrompt(filePath, userId, metadata);
+          result = await processPdfPrompt(filePath, userId, metadata);
           break;
 
         case "prompt_image":
-          await processPromptImage(filePath, userId, metadata);
+          result = await processPromptImage(filePath, userId, metadata);
           break;
 
         default:
@@ -35,7 +37,7 @@ const fileWorker = new Worker(
       }
 
       logger.info(` Fichier traité avec succès: ${filePath}`);
-      return { success: true, type, filePath };
+      return { success: true, type, ...result };
     } catch (error) {
       logger.error(` Erreur lors du traitement du fichier: ${error.message}`);
       throw error;
@@ -51,7 +53,8 @@ const fileWorker = new Worker(
  * Traiter une image de profil
  * - Optimisation de l'image
  * - Création de thumbnails
- * - Validation
+ * - Upload vers Cloudflare R2
+ * - Suppression du fichier local
  */
 async function processProfilePicture(filePath, userId) {
   if (!fs.existsSync(filePath)) {
@@ -60,47 +63,38 @@ async function processProfilePicture(filePath, userId) {
 
   logger.info(` Traitement de l'image de profil pour l'utilisateur ${userId}`);
 
-  const fileInfo = path.parse(filePath);
-  const outputDir = path.dirname(filePath);
-
   try {
-    // 1. Optimiser l'image originale (max 800x800)
-    const optimizedPath = path.join(
-      outputDir,
-      `${fileInfo.name}_optimized${fileInfo.ext}`
+    // Générer la clé R2
+    const filename = path.basename(filePath);
+    const r2Key = r2StorageService.generateKey("profiles", userId, filename);
+
+    // Upload l'image optimisée avec thumbnail vers R2
+    const result = await r2StorageService.uploadImageWithThumbnail(
+      filePath,
+      r2Key,
+      {
+        imageWidth: 800,
+        imageHeight: 800,
+        imageQuality: 85,
+        thumbWidth: 150,
+        thumbHeight: 150,
+        thumbQuality: 80,
+      }
     );
 
-    await sharp(filePath)
-      .resize(800, 800, {
-        fit: "inside",
-        withoutEnlargement: true,
-      })
-      .jpeg({ quality: 85 })
-      .toFile(optimizedPath);
+    // Supprimer le fichier local après upload réussi
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      logger.info(` Fichier local supprimé: ${filePath}`);
+    }
 
-    // 2. Créer un thumbnail (150x150)
-    const thumbnailPath = path.join(
-      outputDir,
-      `${fileInfo.name}_thumb${fileInfo.ext}`
-    );
-
-    await sharp(filePath)
-      .resize(150, 150, {
-        fit: "cover",
-        position: "center",
-      })
-      .jpeg({ quality: 80 })
-      .toFile(thumbnailPath);
-
-    // 3. Remplacer l'original par la version optimisée
-    fs.unlinkSync(filePath);
-    fs.renameSync(optimizedPath, filePath);
-
-    logger.info(` Image optimisée et thumbnail créé`);
+    logger.info(` Image de profil uploadée vers R2: ${result.image.url}`);
 
     return {
-      originalPath: filePath,
-      thumbnailPath,
+      imageUrl: result.image.url,
+      thumbnailUrl: result.thumbnail.url,
+      r2Key: result.image.key,
+      thumbnailKey: result.thumbnail.key,
       optimized: true,
     };
   } catch (error) {
@@ -113,7 +107,8 @@ async function processProfilePicture(filePath, userId) {
  * Traiter une image de prompt (pour prompts texte)
  * - Optimisation de l'image
  * - Création de thumbnails
- * - Validation
+ * - Upload vers Cloudflare R2
+ * - Suppression du fichier local
  */
 async function processPromptImage(filePath, userId, metadata) {
   if (!fs.existsSync(filePath)) {
@@ -122,47 +117,38 @@ async function processPromptImage(filePath, userId, metadata) {
 
   logger.info(` Traitement de l'image de prompt pour l'utilisateur ${userId}`);
 
-  const fileInfo = path.parse(filePath);
-  const outputDir = path.dirname(filePath);
-
   try {
-    // 1. Optimiser l'image (max 1200x1200 pour les prompts)
-    const optimizedPath = path.join(
-      outputDir,
-      `${fileInfo.name}_optimized${fileInfo.ext}`
+    // Générer la clé R2
+    const filename = path.basename(filePath);
+    const r2Key = r2StorageService.generateKey("prompts/images", userId, filename);
+
+    // Upload l'image optimisée avec thumbnail vers R2
+    const result = await r2StorageService.uploadImageWithThumbnail(
+      filePath,
+      r2Key,
+      {
+        imageWidth: 1200,
+        imageHeight: 1200,
+        imageQuality: 90,
+        thumbWidth: 300,
+        thumbHeight: 300,
+        thumbQuality: 85,
+      }
     );
 
-    await sharp(filePath)
-      .resize(1200, 1200, {
-        fit: "inside",
-        withoutEnlargement: true,
-      })
-      .jpeg({ quality: 90 })
-      .toFile(optimizedPath);
+    // Supprimer le fichier local après upload réussi
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      logger.info(` Fichier local supprimé: ${filePath}`);
+    }
 
-    // 2. Créer un thumbnail (300x300)
-    const thumbnailPath = path.join(
-      outputDir,
-      `${fileInfo.name}_thumb${fileInfo.ext}`
-    );
-
-    await sharp(filePath)
-      .resize(300, 300, {
-        fit: "cover",
-        position: "center",
-      })
-      .jpeg({ quality: 85 })
-      .toFile(thumbnailPath);
-
-    // 3. Remplacer l'original par la version optimisée
-    fs.unlinkSync(filePath);
-    fs.renameSync(optimizedPath, filePath);
-
-    logger.info(` Image de prompt optimisée et thumbnail créé`);
+    logger.info(` Image de prompt uploadée vers R2: ${result.image.url}`);
 
     return {
-      originalPath: filePath,
-      thumbnailPath,
+      imageUrl: result.image.url,
+      thumbnailUrl: result.thumbnail.url,
+      r2Key: result.image.key,
+      thumbnailKey: result.thumbnail.key,
       optimized: true,
       metadata,
     };
@@ -175,8 +161,8 @@ async function processPromptImage(filePath, userId, metadata) {
 /**
  * Traiter un PDF de prompt
  * - Validation du PDF
- * - Extraction de métadonnées
- * - Scan antivirus (optionnel)
+ * - Upload vers Cloudflare R2
+ * - Suppression du fichier local
  */
 async function processPdfPrompt(filePath, userId, metadata) {
   if (!fs.existsSync(filePath)) {
@@ -200,22 +186,32 @@ async function processPdfPrompt(filePath, userId, metadata) {
 
     logger.info(` PDF validé - Taille: ${fileSizeInMB.toFixed(2)} MB`);
 
-    // 3. Ici, vous pouvez ajouter d'autres traitements :
-    // - Scan antivirus
-    // - Extraction de texte avec pdf-parse
-    // - Compression du PDF si trop volumineux
-    // - Génération d'une miniature de la première page
+    // 3. Générer la clé R2
+    const filename = path.basename(filePath);
+    const r2Key = r2StorageService.generateKey("prompts/pdfs", userId, filename);
+
+    // 4. Upload vers R2
+    const result = await r2StorageService.uploadPDF(filePath, r2Key);
+
+    // 5. Supprimer le fichier local après upload réussi
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      logger.info(` Fichier local supprimé: ${filePath}`);
+    }
+
+    logger.info(` PDF uploadé vers R2: ${result.url}`);
 
     return {
-      filePath,
-      validated: true,
+      pdfUrl: result.url,
+      r2Key: result.key,
       sizeInMB: fileSizeInMB,
+      validated: true,
       metadata,
     };
   } catch (error) {
     logger.error(` Erreur lors du traitement du PDF: ${error.message}`);
     
-    // Supprimer le fichier si invalide
+    // Supprimer le fichier local si invalide
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
       logger.info(` Fichier PDF invalide supprimé`);
