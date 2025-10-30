@@ -51,7 +51,10 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
+
+// Augmentation de la limite de taille du body pour les uploads d'images en base64
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Configuration du trust proxy pour express-rate-limit
 // Permet de récupérer correctement l'IP des clients derrière un proxy/load balancer
