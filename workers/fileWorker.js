@@ -4,7 +4,7 @@ const logger = require("../utils/logger");
 const fs = require("fs");
 const path = require("path");
 const r2StorageService = require("../services/r2StorageService");
-const { User } = require("../models");
+const { User, Prompt } = require("../models");
 
 /**
  * Worker pour traiter les uploads de fichiers
@@ -152,6 +152,25 @@ async function processPromptImage(filePath, userId, metadata) {
 
     logger.info(` Image de prompt uploadée vers R2: ${result.image.url}`);
 
+    // Mettre à jour la base de données avec l'URL R2
+    if (metadata && metadata.promptId) {
+      const updateFields = metadata.isSecondImage 
+        ? { 
+            imageUrl2: result.image.url,
+            thumbnailUrl2: result.thumbnail.url 
+          }
+        : { 
+            imageUrl: result.image.url,
+            thumbnailUrl: result.thumbnail.url 
+          };
+      
+      await Prompt.update(
+        updateFields,
+        { where: { id: metadata.promptId } }
+      );
+      logger.info(` Base de données mise à jour avec l'URL R2 pour le prompt ${metadata.promptId} (image ${metadata.isSecondImage ? '2' : '1'})`);
+    }
+
     return {
       imageUrl: result.image.url,
       thumbnailUrl: result.thumbnail.url,
@@ -208,6 +227,15 @@ async function processPdfPrompt(filePath, userId, metadata) {
     }
 
     logger.info(` PDF uploadé vers R2: ${result.url}`);
+
+    // Mettre à jour la base de données avec l'URL R2
+    if (metadata && metadata.promptId) {
+      await Prompt.update(
+        { pdfUrl: result.url },
+        { where: { id: metadata.promptId } }
+      );
+      logger.info(` Base de données mise à jour avec l'URL R2 pour le prompt ${metadata.promptId}`);
+    }
 
     return {
       pdfUrl: result.url,

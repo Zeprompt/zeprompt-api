@@ -21,7 +21,7 @@ function conditionalPdfUpload(req, res, next) {
         // Choisir le bon dossier selon le type de fichier
         if (file.fieldname === 'pdf') {
           cb(null, require('path').resolve(process.cwd(), 'uploads', 'pdfs'));
-        } else if (file.fieldname === 'image') {
+        } else if (file.fieldname === 'image' || file.fieldname === 'image2') {
           cb(null, require('path').resolve(process.cwd(), 'uploads', 'prompts', 'images'));
         } else {
           cb(new Error('Field name inconnu'));
@@ -40,7 +40,7 @@ function conditionalPdfUpload(req, res, next) {
           return cb(null, true);
         }
         return cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'pdf'));
-      } else if (file.fieldname === 'image') {
+      } else if (file.fieldname === 'image' || file.fieldname === 'image2') {
         // Validation pour images
         const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
         if (allowedMimes.includes(file.mimetype)) {
@@ -55,7 +55,8 @@ function conditionalPdfUpload(req, res, next) {
     },
   }).fields([
     { name: 'pdf', maxCount: 1 },
-    { name: 'image', maxCount: 1 }
+    { name: 'image', maxCount: 1 },
+    { name: 'image2', maxCount: 1 }
   ]);
 
   upload(req, res, (err) => {
@@ -95,6 +96,14 @@ function conditionalPdfUpload(req, res, next) {
         req.body.imagePath = imageFile.path;
         req.body.imageOriginalName = imageFile.originalname;
         req.body.imageFileSize = imageFile.size;
+      }
+      
+      // Deuxième image uploadée (facultatif pour prompts text)
+      if (req.files.image2 && req.files.image2[0]) {
+        const image2File = req.files.image2[0];
+        req.body.imagePath2 = image2File.path;
+        req.body.imageOriginalName2 = image2File.originalname;
+        req.body.imageFileSize2 = image2File.size;
       }
     }
     

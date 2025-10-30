@@ -56,6 +56,21 @@ const createPromptSchema = z
       .optional()
       .nullable(),
 
+    imagePath2: z
+      .string()
+      .optional()
+      .nullable(),
+
+    imageOriginalName2: z
+      .string()
+      .optional()
+      .nullable(),
+
+    imageFileSize2: z
+      .number()
+      .optional()
+      .nullable(),
+
     tags: z
       .union([
         z.array(z.string()), // Tableau de strings (JSON)
@@ -79,6 +94,10 @@ const createPromptSchema = z
     }).optional().default("activé"),
 
     imageUrl: z.string().url().optional().nullable(),
+    imageUrl2: z.string().url().optional().nullable(),
+    pdfUrl: z.string().url().optional().nullable(),
+    thumbnailUrl: z.string().url().optional().nullable(),
+    thumbnailUrl2: z.string().url().optional().nullable(),
   })
   .refine(
     (data) =>
@@ -134,6 +153,12 @@ const updatePromptSchema = z
 
     imageFileSize: z.number().optional().nullable(),
 
+    imagePath2: z.string().optional().nullable(),
+
+    imageOriginalName2: z.string().optional().nullable(),
+
+    imageFileSize2: z.number().optional().nullable(),
+
     tags: z.array(z.string()).optional(),
 
     isPublic: z.boolean().optional(),
@@ -145,6 +170,10 @@ const updatePromptSchema = z
     }).optional(),
 
     imageUrl: z.string().url().optional().nullable(),
+    imageUrl2: z.string().url().optional().nullable(),
+    pdfUrl: z.string().url().optional().nullable(),
+    thumbnailUrl: z.string().url().optional().nullable(),
+    thumbnailUrl2: z.string().url().optional().nullable(),
   })
   .refine(
     (data) =>

@@ -75,6 +75,41 @@ module.exports = (sequelize, DataTypes) => {
         field: "image_url",
         allowNull: true,
       },
+      imagePath2: {
+        type: DataTypes.STRING,
+        field: "image2_path",
+        allowNull: true,
+      },
+      imageFileSize2: {
+        type: DataTypes.INTEGER,
+        field: "image2_file_size",
+        allowNull: true,
+      },
+      imageOriginalName2: {
+        type: DataTypes.STRING,
+        field: "image2_original_name",
+        allowNull: true,
+      },
+      imageUrl2: {
+        type: DataTypes.STRING,
+        field: "image2_url",
+        allowNull: true,
+      },
+      pdfUrl: {
+        type: DataTypes.STRING,
+        field: "pdf_url",
+        allowNull: true,
+      },
+      thumbnailUrl: {
+        type: DataTypes.STRING,
+        field: "thumbnail_url",
+        allowNull: true,
+      },
+      thumbnailUrl2: {
+        type: DataTypes.STRING,
+        field: "thumbnail2_url",
+        allowNull: true,
+      },
       isPublic: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,

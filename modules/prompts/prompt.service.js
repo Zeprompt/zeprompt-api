@@ -103,11 +103,33 @@ class PromptService {
               title: prompt.title,
               originalName: data.imageOriginalName,
               fileSize: data.imageFileSize,
+              isSecondImage: false,
             }
           );
           logger.info(`🖼️ Image de prompt ajoutée à la queue pour traitement: ${prompt.id}`);
         } catch (error) {
           logger.error(`❌ Erreur lors de l'ajout de l'image à la queue: ${error.message}`);
+          // Continue quand même, l'image sera utilisée même si le traitement échoue
+        }
+      }
+      
+      // Si une deuxième image est attachée (pour prompts texte), ajouter à la queue pour optimisation
+      if (data.contentType === 'text' && data.imagePath2) {
+        try {
+          await fileUploadService.processPromptImage(
+            data.imagePath2,
+            data.userId,
+            {
+              promptId: prompt.id,
+              title: prompt.title,
+              originalName: data.imageOriginalName2,
+              fileSize: data.imageFileSize2,
+              isSecondImage: true,
+            }
+          );
+          logger.info(`🖼️ Image 2 de prompt ajoutée à la queue pour traitement: ${prompt.id}`);
+        } catch (error) {
+          logger.error(`❌ Erreur lors de l'ajout de l'image 2 à la queue: ${error.message}`);
           // Continue quand même, l'image sera utilisée même si le traitement échoue
         }
       }
