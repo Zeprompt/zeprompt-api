@@ -1,7 +1,5 @@
 const AppResponse = require("../../utils/appResponse");
 const userService = require("./user.service");
-const fs = require("fs");
-const path = require("path");
 
 /**
  * @openapi
@@ -139,40 +137,16 @@ class UserController {
     try {
       const userId = req.user.id;
       const profileData = req.body;
-      let profilePicturePath = req.file ? req.file.path : null;
-
-      // Support optionnel: data URL base64 dans body (ex: "data:image/jpeg;base64,...")
-      if (!profilePicturePath && typeof profileData.profilePicture === "string" && profileData.profilePicture.startsWith("data:image/")) {
-        try {
-          const matches = profileData.profilePicture.match(/^data:(image\/(?:jpeg|jpg|png|gif|webp));base64,(.+)$/);
-          if (matches && matches[2]) {
-            const mime = matches[1];
-            const base64Data = matches[2];
-            const buffer = Buffer.from(base64Data, "base64");
-
-            // Assurer le dossier d'upload local (réutilisé par le worker R2)
-            const uploadDir = path.join(process.cwd(), "uploads", "profiles");
-            if (!fs.existsSync(uploadDir)) {
-              fs.mkdirSync(uploadDir, { recursive: true });
-            }
-
-            const ext = mime.includes("jpeg") || mime.includes("jpg") ? ".jpg" : mime.includes("png") ? ".png" : mime.includes("webp") ? ".webp" : mime.includes("gif") ? ".gif" : ".jpg";
-            const filename = `${userId}-${Date.now()}-profile${ext}`;
-            const filePath = path.join(uploadDir, filename);
-            fs.writeFileSync(filePath, buffer);
-            profilePicturePath = filePath;
-
-            // Ne pas persister la data URL brute en base
-            delete profileData.profilePicture;
-          }
-        } catch {
-          return new AppResponse({
-            message: "Image de profil invalide (base64)",
-            statusCode: 400,
-            code: "INVALID_PROFILE_PICTURE",
-            success: false,
-          }).send(res);
-        }
+      const profilePicturePath = req.file ? req.file.path : null;
+      
+      // Rejeter explicitement toute base64/dataURL envoyée en tant que string
+      if (typeof profileData.profilePicture === "string" && profileData.profilePicture.startsWith("data:image/")) {
+        return new AppResponse({
+          message: "Les images base64 ne sont pas autorisées. Utilisez multipart/form-data avec un fichier.",
+          statusCode: 400,
+          code: "BASE64_NOT_ALLOWED",
+          success: false,
+        }).send(res);
       }
       
       const updatedProfile = await userService.updateUserProfile(
