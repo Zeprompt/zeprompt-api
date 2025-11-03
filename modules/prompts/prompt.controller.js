@@ -354,7 +354,7 @@ class PromptController {
   async getAllPublicPrompts(req, res, next) {
     try {
       const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 20;
+      const limit = parseInt(req.query.limit) || 15;
 
       const data = await promptService.getAllPublicPrompts({ page, limit });
       new AppResponse({
@@ -372,7 +372,7 @@ class PromptController {
   async getAllPromptsForAdmin(req, res, next) {
     try {
       const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 20;
+      const limit = parseInt(req.query.limit) || 15;
       const user = req.user;
 
       const data = await promptService.getAllPrompts({ page, limit, user });
@@ -434,7 +434,7 @@ class PromptController {
         sort,
         order,
         page: parseInt(page) || 1,
-        limit: parseInt(limit) || 20,
+        limit: parseInt(limit) || 15,
       });
       new AppResponse({
         message: "Prompts récupérés avec succès",

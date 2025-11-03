@@ -196,7 +196,7 @@ class PromptService {
    * @param {*} param0 - { page, limit, currentUser }
    * @returns Liste de prompts
    */
-  async getAllPrompts({ page = 1, limit = 20, currentUser }, options = {}) {
+  async getAllPrompts({ page = 1, limit = 15, currentUser }, options = {}) {
     const prompts = await promptRepository.getAllPrompts(
       {
         page,
@@ -214,7 +214,7 @@ class PromptService {
    * @param {*} param0 - { page, limit }
    * @returns Liste de prompts publics
    */
-  async getAllPublicPrompts({ page = 1, limit = 20 }) {
+  async getAllPublicPrompts({ page = 1, limit = 15 }) {
     const cacheKey = `prompts:page_${page}_limit_${limit}`;
     const cachedPrompts = await CacheService.get(cacheKey);
 

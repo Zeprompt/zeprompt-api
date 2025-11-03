@@ -119,7 +119,7 @@ class PromptRepository {
    * @returns
    */
   async getAllPrompts(
-    { page = 1, limit = 20, currentUser = null },
+    { page = 1, limit = 15, currentUser = null },
     options = {}
   ) {
     const offset = (page - 1) * limit;
@@ -142,8 +142,41 @@ class PromptRepository {
       };
     }
 
-    const { rows, count } = await Prompt.findAndCountAll({
+    // Première requête : récupérer le total et les IDs des prompts paginés
+    const totalCount = await Prompt.count({
       where: whereCondition,
+      distinct: true,
+      col: 'id'
+    });
+
+    // Deuxième requête : récupérer les IDs paginés
+    const paginatedIds = await Prompt.findAll({
+      where: whereCondition,
+      attributes: ['id'],
+      order: [["createdAt", "DESC"]],
+      limit,
+      offset,
+      raw: true,
+      ...options,
+    });
+
+    if (paginatedIds.length === 0) {
+      return {
+        prompts: [],
+        meta: {
+          total: totalCount,
+          page,
+          limit,
+          pageCount: Math.ceil(totalCount / limit),
+        }
+      };
+    }
+
+    const ids = paginatedIds.map(p => p.id);
+
+    // Troisième requête : charger les prompts complets avec toutes les relations
+    const prompts = await Prompt.findAll({
+      where: { id: ids },
       include: [
         {
           model: Tag,
@@ -177,19 +210,13 @@ class PromptRepository {
         "Tags->prompt_tags.prompt_id",
         "Tags->prompt_tags.tag_id",
       ],
-      offset,
-      limit,
       order: [["createdAt", "DESC"]],
-      distinct: true,
       subQuery: false,
       ...options,
     });
 
-    // Avec GROUP BY, count est un tableau d'objets. On doit compter le nombre d'éléments
-    const totalCount = Array.isArray(count) ? count.length : count;
-
     return {
-      prompts: rows,
+      prompts,
       meta: {
         total: totalCount,
         page,
@@ -218,7 +245,7 @@ class PromptRepository {
     return prompt.destroy(options);
   }
 
-  async searchPrompts({ q, tags, sort, order = "DESC", page = 1, limit = 20 }) {
+  async searchPrompts({ q, tags, sort, order = "DESC", page = 1, limit = 15 }) {
     const where = {
       isPublic: true,
       status: "activé", // Seulement les prompts activés dans la recherche publique
@@ -267,15 +294,58 @@ class PromptRepository {
     }
 
     const orderMapping = {
-      likes: [fn("COUNT", col("Likes.id")), order],
-      views: [fn("COUNT", col("Views.id")), order],
-      date: ["createdAt", order],
+      likes: "likeCount",
+      views: "viewCount",
+      date: "createdAt",
     };
 
-    // Pagination
-    const offset = (page - 1) * limit;
-    const { rows, count } = await Prompt.findAndCountAll({
+    // Première requête : compter le total
+    const totalCount = await Prompt.count({
       where,
+      include: tags.length > 0 ? [{
+        model: Tag,
+        where: { name: tags },
+        through: { attributes: [] },
+        required: true,
+      }] : [],
+      distinct: true,
+      col: 'id'
+    });
+
+    // Deuxième requête : récupérer les IDs paginés (sans GROUP BY pour pagination correcte)
+    const offset = (page - 1) * limit;
+    const paginatedIds = await Prompt.findAll({
+      where,
+      include: tags.length > 0 ? [{
+        model: Tag,
+        where: { name: tags },
+        through: { attributes: [] },
+        required: true,
+      }] : [],
+      attributes: ['id'],
+      order: [["createdAt", order.toUpperCase()]],
+      limit,
+      offset,
+      raw: true,
+    });
+
+    if (paginatedIds.length === 0) {
+      return {
+        prompts: [],
+        meta: {
+          total: totalCount,
+          page,
+          limit,
+          pageCount: Math.ceil(totalCount / limit),
+        }
+      };
+    }
+
+    const ids = paginatedIds.map(p => p.id);
+
+    // Troisième requête : charger les prompts complets avec toutes les relations
+    const prompts = await Prompt.findAll({
+      where: { id: ids },
       include,
       attributes: {
         include: [
@@ -290,21 +360,14 @@ class PromptRepository {
         "Tags->prompt_tags.prompt_id",
         "Tags->prompt_tags.tag_id",
       ],
-      limit,
-      offset,
-      order:
-        sort && orderMapping[sort]
-          ? [orderMapping[sort]]
-          : [["createdAt", "desc"]],
-      distinct: true,
+      order: sort && orderMapping[sort]
+        ? [[sequelize.literal(orderMapping[sort]), order.toUpperCase()]]
+        : [["createdAt", order.toUpperCase()]],
       subQuery: false,
     });
 
-    // Avec GROUP BY, count est un tableau d'objets. On doit compter le nombre d'éléments
-    const totalCount = Array.isArray(count) ? count.length : count;
-
     return {
-      prompts: rows,
+      prompts,
       meta: {
         total: totalCount,
         page,
