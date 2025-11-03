@@ -1,5 +1,5 @@
 const statsService = require("./stats.service");
-const AppResponse = require("../../utils/AppResponse");
+const AppResponse = require("../../utils/appResponse");
 
 class StatsController {
   /**
