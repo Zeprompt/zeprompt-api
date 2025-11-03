@@ -80,12 +80,34 @@ class PromptRepository {
           as: "user",
           attributes: ["id", "username", "email", "profilePicture"],
         },
+        {
+          model: Like,
+          attributes: []
+        },
+        {
+          model: View,
+          attributes: []
+        },
+      ],
+      attributes: {
+        include: [
+          [fn("COUNT", col("Likes.id")), "likeCount"],
+          [fn("COUNT", col("Views.id")), "viewCount"],
+        ],
+      },
+      group: [
+        "Prompt.id",
+        "user.id",
+        "Tags.id",
+        "Tags->prompt_tags.prompt_id",
+        "Tags->prompt_tags.tag_id",
       ],
       where: {
         id: { [Op.ne]: promptId },
       },
       order: sequelize.random(),
       limit,
+      subQuery: false,
       ...options,
       distinct: true,
     });
@@ -133,11 +155,33 @@ class PromptRepository {
           as: "user",
           attributes: ["id", "username", "email", "profilePicture"]
         },
+        {
+          model: Like,
+          attributes: []
+        },
+        {
+          model: View,
+          attributes: []
+        },
+      ],
+      attributes: {
+        include: [
+          [fn("COUNT", col("Likes.id")), "likeCount"],
+          [fn("COUNT", col("Views.id")), "viewCount"],
+        ],
+      },
+      group: [
+        "Prompt.id",
+        "user.id",
+        "Tags.id",
+        "Tags->prompt_tags.prompt_id",
+        "Tags->prompt_tags.tag_id",
       ],
       offset,
       limit,
       order: [["createdAt", "DESC"]],
       distinct: true,
+      subQuery: false,
       ...options,
     });
     return {
@@ -188,8 +232,16 @@ class PromptRepository {
         as: "user",
         attributes: ["id", "username", "email", "profilePicture"],
       },
+      {
+        model: Like,
+        attributes: []
+      },
+      {
+        model: View,
+        attributes: []
+      },
     ];
-    
+
     if (tags.length > 0) {
       include.push({
         model: Tag,
@@ -208,9 +260,8 @@ class PromptRepository {
     }
 
     const orderMapping = {
-      likes: ["likes", "count", order],
-      views: ["views", order],
-      comments: ["comments", "count", order],
+      likes: [fn("COUNT", col("Likes.id")), order],
+      views: [fn("COUNT", col("Views.id")), order],
       date: ["createdAt", order],
     };
 
@@ -219,6 +270,19 @@ class PromptRepository {
     const prompts = await Prompt.findAndCountAll({
       where,
       include,
+      attributes: {
+        include: [
+          [fn("COUNT", col("Likes.id")), "likeCount"],
+          [fn("COUNT", col("Views.id")), "viewCount"],
+        ],
+      },
+      group: [
+        "Prompt.id",
+        "user.id",
+        "Tags.id",
+        "Tags->prompt_tags.prompt_id",
+        "Tags->prompt_tags.tag_id",
+      ],
       limit,
       offset,
       order:
@@ -226,6 +290,7 @@ class PromptRepository {
           ? [orderMapping[sort]]
           : [["createdAt", "desc"]],
       distinct: true,
+      subQuery: false,
     });
 
     return {
