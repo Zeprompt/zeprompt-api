@@ -27,9 +27,14 @@ class ViewService {
     if (await this._hasViewedRecently(promptId, identifier)) {
       return { isNewView: false };
     }
+
+    // Si user.id existe, on l'utilise. Sinon, on utilise anonymousId
+    const userId = user?.id || null;
+    const finalAnonymousId = userId ? null : anonymousId;
+
     await viewRepository.recordView(
       promptId,
-      { userId: user?.id || null, anonymousId: user ? null : anonymousId },
+      { userId, anonymousId: finalAnonymousId },
       options
     );
 
