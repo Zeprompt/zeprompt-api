@@ -29,6 +29,43 @@ class AuthMiddleware {
     }
   }
 
+  /**
+   * Middleware d'authentification optionnelle
+   * Permet les requêtes avec OU sans token JWT
+   * Si un token est fourni et valide, req.user sera défini
+   * Si pas de token ou token invalide, req.user sera undefined (mais la requête continue)
+   */
+  static optionalAuthenticate(req, res, next) {
+    try {
+      // Si pas d'Authorization header, continuer sans authentification
+      if (!req.headers || !req.headers.authorization) {
+        logger.debug("Requête sans authentification (utilisateur anonyme)");
+        req.user = undefined;
+        return next();
+      }
+
+      const token = req.headers.authorization.split(" ")[1];
+      
+      // Si pas de token après "Bearer ", continuer sans authentification
+      if (!token) {
+        logger.debug("Token manquant après 'Bearer' (utilisateur anonyme)");
+        req.user = undefined;
+        return next();
+      }
+
+      // Tenter de vérifier le token
+      req.user = verifyToken(token);
+      logger.debug(`Utilisateur authentifié : ${req.user.email || req.user.id}`);
+      next();
+    } catch (error) {
+      // En cas d'erreur de vérification du token, continuer quand même
+      // (l'utilisateur sera traité comme anonyme)
+      logger.warn(`Token invalide, requête traitée comme anonyme : ${error.message}`);
+      req.user = undefined;
+      next();
+    }
+  }
+
   static isAdmin(req, res, next) {
     if (!req.user) {
       logger.error(

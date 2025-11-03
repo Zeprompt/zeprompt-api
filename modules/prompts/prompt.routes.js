@@ -56,11 +56,12 @@ router.delete("/:id", AuthMiddleware.authenticate, (req, res, next) =>
 );
 
 // ---- Routes pour les likes ----
-router.post("/:id/like", AuthMiddleware.authenticate, (req, res, next) =>
+// Note: Les likes fonctionnent avec ou sans authentification (utilisateurs anonymes via IP)
+router.post("/:id/like", AuthMiddleware.optionalAuthenticate, (req, res, next) =>
   likeController.likePrompt(req, res, next)
 );
 
-router.post("/:id/dislike", AuthMiddleware.authenticate, (req, res, next) =>
+router.post("/:id/dislike", AuthMiddleware.optionalAuthenticate, (req, res, next) =>
   likeController.dislikePrompt(req, res, next)
 );
 
