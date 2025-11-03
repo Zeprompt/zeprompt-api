@@ -184,11 +184,18 @@ class PromptRepository {
       subQuery: false,
       ...options,
     });
+
+    // Avec GROUP BY, count est un tableau d'objets. On doit compter le nombre d'éléments
+    const totalCount = Array.isArray(count) ? count.length : count;
+
     return {
       prompts: rows,
-      total: count,
-      page,
-      pageCount: Math.ceil(count / limit),
+      meta: {
+        total: totalCount,
+        page,
+        limit,
+        pageCount: Math.ceil(totalCount / limit),
+      }
     };
   }
 
@@ -267,7 +274,7 @@ class PromptRepository {
 
     // Pagination
     const offset = (page - 1) * limit;
-    const prompts = await Prompt.findAndCountAll({
+    const { rows, count } = await Prompt.findAndCountAll({
       where,
       include,
       attributes: {
@@ -293,11 +300,17 @@ class PromptRepository {
       subQuery: false,
     });
 
+    // Avec GROUP BY, count est un tableau d'objets. On doit compter le nombre d'éléments
+    const totalCount = Array.isArray(count) ? count.length : count;
+
     return {
-      prompts: prompts.rows,
-      total: prompts.count,
-      page,
-      limit,
+      prompts: rows,
+      meta: {
+        total: totalCount,
+        page,
+        limit,
+        pageCount: Math.ceil(totalCount / limit),
+      }
     };
   }
 
