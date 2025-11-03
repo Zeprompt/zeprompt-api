@@ -247,7 +247,7 @@ class PromptService {
     this._validateUuid(id, "Delete Prompt By Id");
     return await sequelize.transaction(async (t) => {
       const prompt = await this.getPromptById(id, { transaction: t });
-      if (prompt.userId !== currentUser.id || currentUser.role !== "admin")
+      if (prompt.userId !== currentUser.id && currentUser.role !== "admin")
         throw Errors.forbidden();
       this._ensurePromptExists(prompt, id);
       await promptRepository.deletePrompt(prompt, { transaction: t });
