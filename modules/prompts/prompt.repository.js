@@ -40,7 +40,7 @@ class PromptRepository {
   async findPromptById(id, options = {}) {
     const prompt = await Prompt.findByPk(id, {
       include: [
-        { model: User, as: "user", attributes: ["id", "username", "email"] },
+        { model: User, as: "user", attributes: ["id", "username", "email", "profilePicture"] },
         { model: Tag, through: { attributes: [] }, attributes: ["id", "name"] },
         { model: Like, attributes: [] },
         { model: View, attributes: [] },
