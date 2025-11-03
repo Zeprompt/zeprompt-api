@@ -87,6 +87,7 @@ class UserService {
       id: user.id,
       username: user.username,
       email: user.email,
+      profilePicture: user.profilePicture,
       role: user.role,
       createdAt: user.createdAt,
       promptCount: parseInt(user.get("promptCount"), 10) || 0,

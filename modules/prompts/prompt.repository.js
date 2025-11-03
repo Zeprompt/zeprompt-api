@@ -13,7 +13,7 @@ class PromptRepository {
     await prompt.reload({
       include: [
         { model: Tag, through: { attributes: [] } },
-        { model: User, as: "user", attributes: ["id", "username", "email"] },
+        { model: User, as: "user", attributes: ["id", "username", "email", "profilePicture"] },
       ],
       ...options,
     });
@@ -78,7 +78,7 @@ class PromptRepository {
         {
           model: User,
           as: "user",
-          attributes: ["id", "username", "email"],
+          attributes: ["id", "username", "email", "profilePicture"],
         },
       ],
       where: {
@@ -123,15 +123,15 @@ class PromptRepository {
     const { rows, count } = await Prompt.findAndCountAll({
       where: whereCondition,
       include: [
-        { 
-          model: Tag, 
+        {
+          model: Tag,
           through: { attributes: [] },
           attributes: ["id", "name"]
         },
-        { 
-          model: User, 
-          as: "user", 
-          attributes: ["id", "username", "email"] 
+        {
+          model: User,
+          as: "user",
+          attributes: ["id", "username", "email", "profilePicture"]
         },
       ],
       offset,
@@ -186,7 +186,7 @@ class PromptRepository {
       {
         model: User,
         as: "user",
-        attributes: ["id", "username", "email"],
+        attributes: ["id", "username", "email", "profilePicture"],
       },
     ];
     
