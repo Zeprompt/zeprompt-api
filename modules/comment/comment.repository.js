@@ -33,14 +33,27 @@ class CommentRepository {
   }
 
   async getCommentsByPrompt(promptId, options = {}) {
+    const { User } = require("../../models");
     return Comment.findAll({
       where: { promptId: promptId, parentId: null },
       order: [["createdAt", "ASC"]],
       include: [
         {
+          model: User,
+          as: "user",
+          attributes: ["id", "username", "email", "profilePicture"],
+        },
+        {
           model: Comment,
           as: "replies",
           order: [["createdAt", "ASC"]],
+          include: [
+            {
+              model: User,
+              as: "user",
+              attributes: ["id", "username", "email", "profilePicture"],
+            },
+          ],
         },
       ],
       ...options,

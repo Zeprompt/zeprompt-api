@@ -98,19 +98,22 @@ class UserRepository {
         "id",
         "username",
         "email",
+        "profilePicture",
+        "role",
+        "createdAt",
         [
           literal(`(
-          SELECT COUNT(*) 
-          FROM prompts AS p 
+          SELECT COUNT(*)
+          FROM prompts AS p
           WHERE p.user_id = "User"."id"
         )`),
           "promptCount",
         ],
         [
           literal(`(
-          SELECT COUNT(*) 
-          FROM likes AS l 
-          INNER JOIN prompts AS p ON l.prompt_id = p.id 
+          SELECT COUNT(*)
+          FROM likes AS l
+          INNER JOIN prompts AS p ON l.prompt_id = p.id
           WHERE p.user_id = "User"."id"
         )`),
           "likeCount",

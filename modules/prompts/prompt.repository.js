@@ -1,4 +1,4 @@
-const { fn, col, Op } = require("sequelize");
+const { Op } = require("sequelize");
 const { Prompt, User, Tag, Like, View, sequelize } = require("../../models");
 
 class PromptRepository {
@@ -13,7 +13,7 @@ class PromptRepository {
     await prompt.reload({
       include: [
         { model: Tag, through: { attributes: [] } },
-        { model: User, as: "user", attributes: ["id", "username", "email"] },
+        { model: User, as: "user", attributes: ["id", "username", "email", "profilePicture"] },
       ],
       ...options,
     });
@@ -40,15 +40,16 @@ class PromptRepository {
   async findPromptById(id, options = {}) {
     const prompt = await Prompt.findByPk(id, {
       include: [
-        { model: User, as: "user", attributes: ["id", "username", "email"] },
+        { model: User, as: "user", attributes: ["id", "username", "email", "profilePicture"] },
         { model: Tag, through: { attributes: [] }, attributes: ["id", "name"] },
         { model: Like, attributes: [] },
         { model: View, attributes: [] },
       ],
       attributes: {
+        exclude: ['views'], // Exclure le champ obsolète 'views'
         include: [
-          [fn("COUNT", col("Likes.id")), "totalLikes"],
-          [fn("COUNT", col("Views.id")), "totalViews"],
+          [sequelize.literal('CAST(COUNT(DISTINCT "Likes"."id") AS INTEGER)'), "likeCount"],
+          [sequelize.literal('CAST(COUNT(DISTINCT "Views"."id") AS INTEGER)'), "viewCount"],
         ],
       },
       group: [
@@ -78,14 +79,37 @@ class PromptRepository {
         {
           model: User,
           as: "user",
-          attributes: ["id", "username", "email"],
+          attributes: ["id", "username", "email", "profilePicture"],
         },
+        {
+          model: Like,
+          attributes: []
+        },
+        {
+          model: View,
+          attributes: []
+        },
+      ],
+      attributes: {
+        exclude: ['views'], // Exclure le champ obsolète 'views'
+        include: [
+          [sequelize.literal('CAST(COUNT(DISTINCT "Likes"."id") AS INTEGER)'), "likeCount"],
+          [sequelize.literal('CAST(COUNT(DISTINCT "Views"."id") AS INTEGER)'), "viewCount"],
+        ],
+      },
+      group: [
+        "Prompt.id",
+        "user.id",
+        "Tags.id",
+        "Tags->prompt_tags.prompt_id",
+        "Tags->prompt_tags.tag_id",
       ],
       where: {
         id: { [Op.ne]: promptId },
       },
       order: sequelize.random(),
       limit,
+      subQuery: false,
       ...options,
       distinct: true,
     });
@@ -97,7 +121,7 @@ class PromptRepository {
    * @returns
    */
   async getAllPrompts(
-    { page = 1, limit = 20, currentUser = null },
+    { page = 1, limit = 15, currentUser = null },
     options = {}
   ) {
     const offset = (page - 1) * limit;
@@ -120,31 +144,88 @@ class PromptRepository {
       };
     }
 
-    const { rows, count } = await Prompt.findAndCountAll({
+    // Première requête : récupérer le total et les IDs des prompts paginés
+    const totalCount = await Prompt.count({
       where: whereCondition,
+      distinct: true,
+      col: 'id'
+    });
+
+    // Deuxième requête : récupérer les IDs paginés
+    const paginatedIds = await Prompt.findAll({
+      where: whereCondition,
+      attributes: ['id'],
+      order: [["createdAt", "DESC"]],
+      limit,
+      offset,
+      raw: true,
+      ...options,
+    });
+
+    if (paginatedIds.length === 0) {
+      return {
+        prompts: [],
+        meta: {
+          total: totalCount,
+          page,
+          limit,
+          pageCount: Math.ceil(totalCount / limit),
+        }
+      };
+    }
+
+    const ids = paginatedIds.map(p => p.id);
+
+    // Troisième requête : charger les prompts complets avec toutes les relations
+    const prompts = await Prompt.findAll({
+      where: { id: ids },
       include: [
-        { 
-          model: Tag, 
+        {
+          model: Tag,
           through: { attributes: [] },
           attributes: ["id", "name"]
         },
-        { 
-          model: User, 
-          as: "user", 
-          attributes: ["id", "username", "email"] 
+        {
+          model: User,
+          as: "user",
+          attributes: ["id", "username", "email", "profilePicture"]
+        },
+        {
+          model: Like,
+          attributes: []
+        },
+        {
+          model: View,
+          attributes: []
         },
       ],
-      offset,
-      limit,
+      attributes: {
+        exclude: ['views'], // Exclure le champ obsolète 'views'
+        include: [
+          [sequelize.literal('CAST(COUNT(DISTINCT "Likes"."id") AS INTEGER)'), "likeCount"],
+          [sequelize.literal('CAST(COUNT(DISTINCT "Views"."id") AS INTEGER)'), "viewCount"],
+        ],
+      },
+      group: [
+        "Prompt.id",
+        "user.id",
+        "Tags.id",
+        "Tags->prompt_tags.prompt_id",
+        "Tags->prompt_tags.tag_id",
+      ],
       order: [["createdAt", "DESC"]],
-      distinct: true,
+      subQuery: false,
       ...options,
     });
+
     return {
-      prompts: rows,
-      total: count,
-      page,
-      pageCount: Math.ceil(count / limit),
+      prompts,
+      meta: {
+        total: totalCount,
+        page,
+        limit,
+        pageCount: Math.ceil(totalCount / limit),
+      }
     };
   }
 
@@ -167,7 +248,7 @@ class PromptRepository {
     return prompt.destroy(options);
   }
 
-  async searchPrompts({ q, tags, sort, order = "DESC", page = 1, limit = 20 }) {
+  async searchPrompts({ q, tags, sort, order = "DESC", page = 1, limit = 15 }) {
     const where = {
       isPublic: true,
       status: "activé", // Seulement les prompts activés dans la recherche publique
@@ -186,10 +267,18 @@ class PromptRepository {
       {
         model: User,
         as: "user",
-        attributes: ["id", "username", "email"],
+        attributes: ["id", "username", "email", "profilePicture"],
+      },
+      {
+        model: Like,
+        attributes: []
+      },
+      {
+        model: View,
+        attributes: []
       },
     ];
-    
+
     if (tags.length > 0) {
       include.push({
         model: Tag,
@@ -208,31 +297,87 @@ class PromptRepository {
     }
 
     const orderMapping = {
-      likes: ["likes", "count", order],
-      views: ["views", order],
-      comments: ["comments", "count", order],
-      date: ["createdAt", order],
+      likes: "likeCount",
+      views: "viewCount",
+      date: "createdAt",
     };
 
-    // Pagination
-    const offset = (page - 1) * limit;
-    const prompts = await Prompt.findAndCountAll({
+    // Première requête : compter le total
+    const totalCount = await Prompt.count({
       where,
-      include,
+      include: tags.length > 0 ? [{
+        model: Tag,
+        where: { name: tags },
+        through: { attributes: [] },
+        required: true,
+      }] : [],
+      distinct: true,
+      col: 'id'
+    });
+
+    // Deuxième requête : récupérer les IDs paginés (sans GROUP BY pour pagination correcte)
+    const offset = (page - 1) * limit;
+    const paginatedIds = await Prompt.findAll({
+      where,
+      include: tags.length > 0 ? [{
+        model: Tag,
+        where: { name: tags },
+        through: { attributes: [] },
+        required: true,
+      }] : [],
+      attributes: ['id'],
+      order: [["createdAt", order.toUpperCase()]],
       limit,
       offset,
-      order:
-        sort && orderMapping[sort]
-          ? [orderMapping[sort]]
-          : [["createdAt", "desc"]],
-      distinct: true,
+      raw: true,
+    });
+
+    if (paginatedIds.length === 0) {
+      return {
+        prompts: [],
+        meta: {
+          total: totalCount,
+          page,
+          limit,
+          pageCount: Math.ceil(totalCount / limit),
+        }
+      };
+    }
+
+    const ids = paginatedIds.map(p => p.id);
+
+    // Troisième requête : charger les prompts complets avec toutes les relations
+    const prompts = await Prompt.findAll({
+      where: { id: ids },
+      include,
+      attributes: {
+        exclude: ['views'], // Exclure le champ obsolète 'views'
+        include: [
+          [sequelize.literal('CAST(COUNT(DISTINCT "Likes"."id") AS INTEGER)'), "likeCount"],
+          [sequelize.literal('CAST(COUNT(DISTINCT "Views"."id") AS INTEGER)'), "viewCount"],
+        ],
+      },
+      group: [
+        "Prompt.id",
+        "user.id",
+        "Tags.id",
+        "Tags->prompt_tags.prompt_id",
+        "Tags->prompt_tags.tag_id",
+      ],
+      order: sort && orderMapping[sort]
+        ? [[sequelize.literal(orderMapping[sort]), order.toUpperCase()]]
+        : [["createdAt", order.toUpperCase()]],
+      subQuery: false,
     });
 
     return {
-      prompts: prompts.rows,
-      total: prompts.count,
-      page,
-      limit,
+      prompts,
+      meta: {
+        total: totalCount,
+        page,
+        limit,
+        pageCount: Math.ceil(totalCount / limit),
+      }
     };
   }
 

@@ -196,7 +196,7 @@ class PromptService {
    * @param {*} param0 - { page, limit, currentUser }
    * @returns Liste de prompts
    */
-  async getAllPrompts({ page = 1, limit = 20, currentUser }, options = {}) {
+  async getAllPrompts({ page = 1, limit = 15, currentUser }, options = {}) {
     const prompts = await promptRepository.getAllPrompts(
       {
         page,
@@ -214,7 +214,7 @@ class PromptService {
    * @param {*} param0 - { page, limit }
    * @returns Liste de prompts publics
    */
-  async getAllPublicPrompts({ page = 1, limit = 20 }) {
+  async getAllPublicPrompts({ page = 1, limit = 15 }) {
     const cacheKey = `prompts:page_${page}_limit_${limit}`;
     const cachedPrompts = await CacheService.get(cacheKey);
 
@@ -272,10 +272,11 @@ class PromptService {
   async deletePrompt(id, currentUser) {
     this._validateUuid(id, "Delete Prompt By Id");
     return await sequelize.transaction(async (t) => {
-      const prompt = await this.getPromptById(id, { transaction: t });
+      // Utiliser findPromptById au lieu de getPromptById pour éviter d'enregistrer une vue
+      const prompt = await promptRepository.findPromptById(id, { transaction: t });
+      this._ensurePromptExists(prompt, id);
       if (prompt.userId !== currentUser.id && currentUser.role !== "admin")
         throw Errors.forbidden();
-      this._ensurePromptExists(prompt, id);
       await promptRepository.deletePrompt(prompt, { transaction: t });
       await this._invalidateCache();
       return { message: "Prompt supprimé avec succès." };
