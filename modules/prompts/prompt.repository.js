@@ -1,4 +1,4 @@
-const { fn, col, Op } = require("sequelize");
+const { Op } = require("sequelize");
 const { Prompt, User, Tag, Like, View, sequelize } = require("../../models");
 
 class PromptRepository {
@@ -46,9 +46,10 @@ class PromptRepository {
         { model: View, attributes: [] },
       ],
       attributes: {
+        exclude: ['views'], // Exclure le champ obsolète 'views'
         include: [
-          [fn("COUNT", col("Likes.id")), "totalLikes"],
-          [fn("COUNT", col("Views.id")), "totalViews"],
+          [sequelize.literal('CAST(COUNT(DISTINCT "Likes"."id") AS INTEGER)'), "totalLikes"],
+          [sequelize.literal('CAST(COUNT(DISTINCT "Views"."id") AS INTEGER)'), "totalViews"],
         ],
       },
       group: [
@@ -90,9 +91,10 @@ class PromptRepository {
         },
       ],
       attributes: {
+        exclude: ['views'], // Exclure le champ obsolète 'views'
         include: [
-          [fn("COUNT", col("Likes.id")), "likeCount"],
-          [fn("COUNT", col("Views.id")), "viewCount"],
+          [sequelize.literal('CAST(COUNT(DISTINCT "Likes"."id") AS INTEGER)'), "likeCount"],
+          [sequelize.literal('CAST(COUNT(DISTINCT "Views"."id") AS INTEGER)'), "viewCount"],
         ],
       },
       group: [
