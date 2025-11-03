@@ -15,6 +15,7 @@ const tagRoutes = require("./modules/tags/tag.routes");
 const promptRoutes = require("./modules/prompts/prompt.routes");
 const userRoutes = require("./modules/users/user.routes");
 const fileRoutes = require("./modules/files/file.routes");
+const statsRoutes = require("./modules/stats/stats.routes");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
 const errorHandler = require("./middleware/errorHandler");
@@ -90,6 +91,7 @@ app.use("/api/tags", tagRoutes);
 app.use("/api/prompts", promptRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/files", fileRoutes);
+app.use("/api/stats", statsRoutes);
 // Swagger UI
 app.use(
   "/api/docs",
