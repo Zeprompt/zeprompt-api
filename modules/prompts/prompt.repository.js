@@ -48,8 +48,8 @@ class PromptRepository {
       attributes: {
         exclude: ['views'], // Exclure le champ obsolète 'views'
         include: [
-          [sequelize.literal('CAST(COUNT(DISTINCT "Likes"."id") AS INTEGER)'), "totalLikes"],
-          [sequelize.literal('CAST(COUNT(DISTINCT "Views"."id") AS INTEGER)'), "totalViews"],
+          [sequelize.literal('CAST(COUNT(DISTINCT "Likes"."id") AS INTEGER)'), "likeCount"],
+          [sequelize.literal('CAST(COUNT(DISTINCT "Views"."id") AS INTEGER)'), "viewCount"],
         ],
       },
       group: [
