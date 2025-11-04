@@ -91,8 +91,20 @@ class PromptService {
         // Combiner tous les tags (existants + nouveaux)
         const allTags = [...existingTags, ...newTags];
         await prompt.setTags(allTags, { transaction: t });
+
+        // Recharger le prompt avec les tags pour les retourner dans la réponse
+        await prompt.reload({
+          include: [
+            'Tags',
+            {
+              association: 'user',
+              attributes: { exclude: ['password'] }
+            }
+          ],
+          transaction: t
+        });
       }
-      
+
       // Si c'est un prompt PDF, uploader directement vers R2 de manière synchrone
       if (data.contentType === 'pdf' && data.pdfFilePath && fs.existsSync(data.pdfFilePath)) {
         try {
