@@ -166,6 +166,39 @@ class UserController {
       next(error);
     }
   }
+
+  /**
+   * Récupère le profil public d'un utilisateur avec ses prompts publics et ses stats
+   * Route publique - accessible sans authentification
+   */
+  async getUserPublicProfile(req, res, next) {
+    try {
+      const { userId } = req.params;
+      const page = parseInt(req.query.page, 10) || 1;
+      const limit = parseInt(req.query.limit, 10) || 15;
+
+      const profile = await userService.getUserPublicProfile(userId, page, limit);
+
+      if (!profile) {
+        return new AppResponse({
+          message: "Utilisateur non trouvé",
+          statusCode: 404,
+          code: "USER_NOT_FOUND",
+          success: false,
+        }).send(res);
+      }
+
+      new AppResponse({
+        message: "Profil public récupéré avec succès",
+        statusCode: 200,
+        data: profile,
+        code: "PUBLIC_PROFILE_FETCHED",
+        success: true,
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new UserController();

@@ -20,6 +20,13 @@ const handleUploadErrors = (req, res, next) => {
   });
 };
 
+// Route publique pour récupérer le profil public d'un utilisateur (avec prompts et stats)
+// IMPORTANT: Cette route doit être définie AVANT /profile pour éviter les conflits
+router.get(
+  "/:userId/profile",
+  (req, res, next) => userController.getUserPublicProfile(req, res, next)
+);
+
 // Route pour récupérer le profil de l'utilisateur connecté
 router.get(
   "/profile",
