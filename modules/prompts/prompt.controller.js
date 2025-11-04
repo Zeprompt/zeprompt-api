@@ -1,6 +1,7 @@
 const promptService = require("./prompt.service");
 const AppResponse = require("../../utils/appResponse");
 const logger = require("../../utils/logger");
+const CacheService = require("../../services/cacheService");
 
 /**
  * @openapi
@@ -500,6 +501,25 @@ class PromptController {
         statusCode: 200,
         data: { reportCount: result.reportCount },
         code: "PROMPT_REPORTED",
+        success: true,
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Vide le cache des prompts (Admin uniquement)
+   */
+  async clearPromptsCache(req, res, next) {
+    try {
+      const deletedCount = await CacheService.clearPromptsCache();
+
+      new AppResponse({
+        message: `Cache des prompts vidé avec succès. ${deletedCount} clé(s) supprimée(s).`,
+        statusCode: 200,
+        data: { deletedKeys: deletedCount },
+        code: "CACHE_CLEARED",
         success: true,
       }).send(res);
     } catch (error) {

@@ -13,7 +13,7 @@ class PromptRepository {
     await prompt.reload({
       include: [
         { model: Tag, through: { attributes: [] } },
-        { model: User, as: "user", attributes: ["id", "username", "email", "profilePicture"] },
+        { model: User, as: "user", attributes: ["id", "username", "profilePicture"] }, // Pas d'email dans les réponses publiques
       ],
       ...options,
     });
@@ -40,7 +40,7 @@ class PromptRepository {
   async findPromptById(id, options = {}) {
     const prompt = await Prompt.findByPk(id, {
       include: [
-        { model: User, as: "user", attributes: ["id", "username", "email", "profilePicture"] },
+        { model: User, as: "user", attributes: ["id", "username", "profilePicture"] }, // Pas d'email dans les réponses publiques
         { model: Tag, through: { attributes: [] }, attributes: ["id", "name"] },
         { model: Like, attributes: [] },
         { model: View, attributes: [] },
@@ -79,7 +79,7 @@ class PromptRepository {
         {
           model: User,
           as: "user",
-          attributes: ["id", "username", "email", "profilePicture"],
+          attributes: ["id", "username", "profilePicture"], // Pas d'email dans les réponses publiques
         },
         {
           model: Like,
@@ -188,7 +188,7 @@ class PromptRepository {
         {
           model: User,
           as: "user",
-          attributes: ["id", "username", "email", "profilePicture"]
+          attributes: ["id", "username", "profilePicture"] // Pas d'email dans les réponses publiques
         },
         {
           model: Like,
@@ -267,7 +267,7 @@ class PromptRepository {
       {
         model: User,
         as: "user",
-        attributes: ["id", "username", "email", "profilePicture"],
+        attributes: ["id", "username", "profilePicture"], // Pas d'email dans les réponses publiques
       },
       {
         model: Like,

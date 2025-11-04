@@ -170,7 +170,7 @@ class UserRepository {
         {
           model: User,
           as: "user",
-          attributes: ["id", "username", "email", "profilePicture"],
+          attributes: ["id", "username", "profilePicture"], // Pas d'email dans les réponses publiques
         },
         {
           model: Like,

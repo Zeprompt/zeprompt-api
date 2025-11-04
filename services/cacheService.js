@@ -70,6 +70,70 @@ class CacheService {
       throw error;
     }
   }
+
+  /**
+   * Supprime toutes les clés qui correspondent à un pattern
+   * @param {string} pattern - Pattern Redis (ex: "prompts:*", "leaderboard:*")
+   * @returns {Promise<number>} - Nombre de clés supprimées
+   */
+  static async delByPattern(pattern) {
+    try {
+      const keys = await redisClient.keys(pattern);
+      if (keys.length === 0) {
+        logger.info(`No keys found for pattern: ${pattern}`);
+        return 0;
+      }
+
+      // Utiliser pipeline pour supprimer toutes les clés en une seule transaction
+      const pipeline = redisClient.pipeline();
+      keys.forEach(key => pipeline.del(key));
+      const results = await pipeline.exec();
+
+      const deletedCount = results.filter(([err, result]) => !err && result === 1).length;
+      logger.info(`✅ Deleted ${deletedCount} keys matching pattern: ${pattern}`);
+      return deletedCount;
+    } catch (error) {
+      logger.error(`Redis DEL pattern error for ${pattern}: `, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Vide tout le cache Redis (ATTENTION: supprime TOUTES les clés)
+   * @returns {Promise<number>} - Nombre de clés supprimées
+   */
+  static async flushAll() {
+    try {
+      const result = await redisClient.flushdb();
+      logger.info("✅ All cache cleared (FLUSHDB)");
+      return result;
+    } catch (error) {
+      logger.error("Redis FLUSHDB error: ", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Vide uniquement le cache des prompts
+   * @returns {Promise<number>} - Nombre de clés supprimées
+   */
+  static async clearPromptsCache() {
+    try {
+      let deletedCount = 0;
+      
+      // Supprimer toutes les clés prompts:*
+      deletedCount += await this.delByPattern("prompts:*");
+      
+      // Supprimer le leaderboard (peut contenir des données de prompts)
+      deletedCount += await this.del("leaderboard:top20");
+      
+      logger.info(`✅ Prompts cache cleared. Total keys deleted: ${deletedCount}`);
+      return deletedCount;
+    } catch (error) {
+      logger.error("Error clearing prompts cache: ", error);
+      throw error;
+    }
+  }
 }
 
 module.exports = CacheService;
