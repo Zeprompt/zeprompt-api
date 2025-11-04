@@ -73,10 +73,24 @@ class PromptService {
 
       // Gérer les tags si présents
       if (tags.length > 0) {
-        const tagInstances = await tagRepository.findByNames(tags, {
+        // Trouver les tags existants
+        const existingTags = await tagRepository.findByNames(tags, {
           transaction: t,
         });
-        await prompt.setTags(tagInstances, { transaction: t });
+
+        const existingTagNames = existingTags.map(tag => tag.name);
+        const missingTagNames = tags.filter(name => !existingTagNames.includes(name));
+
+        // Créer les tags manquants
+        const newTags = [];
+        for (const name of missingTagNames) {
+          const newTag = await tagRepository.create({ name }, { transaction: t });
+          newTags.push(newTag);
+        }
+
+        // Combiner tous les tags (existants + nouveaux)
+        const allTags = [...existingTags, ...newTags];
+        await prompt.setTags(allTags, { transaction: t });
       }
       
       // Si c'est un prompt PDF, uploader directement vers R2 de manière synchrone
