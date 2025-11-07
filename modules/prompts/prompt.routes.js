@@ -40,6 +40,12 @@ router.get(
   AuthMiddleware.isAdmin,
   (req, res, next) => promptController.getAllPromptsForAdmin(req, res, next)
 );
+router.delete(
+  "/admin/cache",
+  AuthMiddleware.authenticate,
+  AuthMiddleware.isAdmin,
+  (req, res, next) => promptController.clearPromptsCache(req, res, next)
+);
 // Route avec paramètre dynamique - doit être définie EN DERNIER
 router.get("/:id", (req, res, next) =>
   promptController.getPromptById(req, res, next)

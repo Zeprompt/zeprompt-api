@@ -93,6 +93,12 @@ const createPromptSchema = z
       }),
     }).optional().default("activé"),
 
+    application: z
+      .string()
+      .max(100, { message: "L'application ne peut pas dépasser 100 caractères" })
+      .optional()
+      .nullable(),
+
     imageUrl: z.string().url().optional().nullable(),
     imageUrl2: z.string().url().optional().nullable(),
     pdfUrl: z.string().url().optional().nullable(),
@@ -168,6 +174,12 @@ const updatePromptSchema = z
         message: `Le statut doit être l'un de : ${allowedStatus.join(", ")}`,
       }),
     }).optional(),
+
+    application: z
+      .string()
+      .max(100, { message: "L'application ne peut pas dépasser 100 caractères" })
+      .optional()
+      .nullable(),
 
     imageUrl: z.string().url().optional().nullable(),
     imageUrl2: z.string().url().optional().nullable(),

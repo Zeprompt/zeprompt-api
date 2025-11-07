@@ -1,33 +1,14 @@
-const redisClient = require("../config/redis");
+const CacheService = require("../services/cacheService");
 const logger = require("../utils/logger");
 
 async function clearPromptsCache() {
   try {
     logger.info("🔄 Clearing prompts cache...");
 
-    // Supprimer les clés de cache connues
-    const keys = [
-      "prompts:page_1_limit_20",
-      "leaderboard:top20"
-    ];
+    // Utiliser la méthode dédiée du CacheService
+    const deletedCount = await CacheService.clearPromptsCache();
 
-    for (const key of keys) {
-      const result = await redisClient.del(key);
-      logger.info(`✅ Deleted cache key: ${key} (result: ${result})`);
-    }
-
-    // Chercher toutes les clés qui commencent par "prompts:"
-    const promptKeys = await redisClient.keys("prompts:*");
-    logger.info(`📋 Found ${promptKeys.length} prompt cache keys`);
-
-    if (promptKeys.length > 0) {
-      for (const key of promptKeys) {
-        await redisClient.del(key);
-        logger.info(`✅ Deleted: ${key}`);
-      }
-    }
-
-    logger.info("✅ Cache cleared successfully!");
+    logger.info(`✅ Cache cleared successfully! ${deletedCount} keys deleted.`);
     process.exit(0);
   } catch (error) {
     logger.error("❌ Error clearing cache:", error);
@@ -35,4 +16,5 @@ async function clearPromptsCache() {
   }
 }
 
+// Exécuter le script
 clearPromptsCache();

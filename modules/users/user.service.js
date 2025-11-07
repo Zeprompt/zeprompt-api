@@ -100,6 +100,39 @@ class UserService {
   }
 
   /**
+   * Récupère les prompts publics d'un utilisateur avec ses stats
+   * @param {string} userId - ID de l'utilisateur
+   * @param {number} page - Numéro de page
+   * @param {number} limit - Nombre d'éléments par page
+   * @returns {Promise<Object|null>} Utilisateur avec prompts et stats ou null si non trouvé
+   */
+  async getUserPublicProfile(userId, page = 1, limit = 15) {
+    const { normalizeImageUrl } = require("../../utils/imageUrlNormalizer");
+    
+    // Récupérer les prompts publics avec pagination
+    const result = await userRepository.getPublicPromptsByUser(userId, page, limit);
+    if (!result) {
+      return null;
+    }
+
+    // Récupérer les stats de l'utilisateur
+    const stats = await userRepository.getUserStats(userId);
+
+    // Normaliser l'URL de la photo de profil
+    const userData = {
+      ...result.user,
+      profilePicture: normalizeImageUrl(result.user.profilePicture),
+    };
+
+    return {
+      user: userData,
+      prompts: result.prompts,
+      stats,
+      meta: result.meta,
+    };
+  }
+
+  /**
    * Met à jour le profil d'un utilisateur
    * @param {string} userId - ID de l'utilisateur
    * @param {Object} profileData - Données du profil à mettre à jour
