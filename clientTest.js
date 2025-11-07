@@ -1,7 +1,7 @@
 const { io } = require("socket.io-client");
 const logger = require("./utils/logger");
 
-const socket = io("http://localhost:3000", {
+const socket = io("http://localhost:3005", {
   transports: ["websocket"], // Force l'utilisation du WebSocket pur
 });
 

@@ -22,7 +22,7 @@ const errorHandler = require("./middleware/errorHandler");
 const { initSocket } = require("./config/socket");
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3005;
 
 // Configuration CORS
 const corsOptions = {
@@ -35,7 +35,7 @@ const corsOptions = {
     
     // Liste des origines autorisées
     const allowedOrigins = [
-      'http://localhost:3000',
+      'http://localhost:3005',
       'http://localhost:3001',
       'http://localhost:5173',
       process.env.FRONTEND_URL

@@ -29,7 +29,7 @@ class EmailVerificationService {
       await redisClient.set(redisKey, verificationToken, "EX", 3600);
 
       // Génère l'URL de vérification à envoyer à l'utilisateur
-      const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+      const baseUrl = process.env.FRONTEND_URL || "http://localhost:3005";
       const verificationUrl = `${baseUrl}/auth/verify-email?token=${verificationToken}&email=${encodeURIComponent(
         user.email
       )}`;

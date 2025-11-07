@@ -25,7 +25,7 @@ const normalizeImageUrl = (imagePath) => {
     const relativePath = imagePath.split('uploads/')[1] || imagePath;
     
     // Construire l'URL publique
-    const baseUrl = process.env.API_URL || 'http://localhost:3000';
+    const baseUrl = process.env.API_URL || 'http://localhost:3005';
     return `${baseUrl}/uploads/${relativePath}`;
   }
 

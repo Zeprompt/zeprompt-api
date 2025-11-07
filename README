@@ -54,7 +54,7 @@ Créez un fichier `.env` à la racine et remplissez-le avec les variables néces
 npm run dev
 ```
 
-Le serveur écoute alors sur `http://localhost:3000`.
+Le serveur écoute alors sur `http://localhost:3005`.
 
 ---
 
