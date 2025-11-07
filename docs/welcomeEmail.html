@@ -62,12 +62,13 @@
         .feature-cards {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
+            gap: 24px;
             margin-bottom: 32px;
         }
         @media (max-width: 600px) {
             .feature-cards {
                 grid-template-columns: 1fr;
+                gap: 20px;
             }
         }
         .feature-card {
@@ -145,6 +146,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            text-align: center;
+            line-height: 1;
             color: #000000;
             font-weight: 700;
             margin-right: 12px;
