@@ -1,6 +1,7 @@
 const userService = require("../users/user.service");
 const { hashPassword, comparePassword } = require("../../utils/passwordUtils");
 const EmailVerificationService = require("../../services/emailVerificationService");
+const WelcomeEmailService = require("../../services/welcomeEmailService");
 const { generateToken } = require("../../utils/jwt");
 const emailQueue = require("../../queues/emailQueue");
 const generateResetPasswordEmailTemplate = require("../../templates/resentPasswordEmail");
@@ -224,10 +225,18 @@ class AuthService {
     if (!user.emailVerified) throw Errors.emailNotVerified();
     const isPasswordValid = await comparePassword(password, user.password);
     if (!isPasswordValid) throw Errors.invalidCredentials();
+    
+    // Envoyer l'email de bienvenue lors de la première connexion (en arrière-plan, ne bloque pas la connexion)
+    WelcomeEmailService.sendWelcomeEmail(user).catch((error) => {
+      console.error("Erreur lors de l'envoi de l'email de bienvenue :", error);
+      // Ne pas bloquer la connexion si l'email échoue
+    });
+    
     const token = this._generateJWT(user);
     return {
       user: this._formateUser(user),
       token,
+      message: "Connexion réussie",
     };
   }
 
