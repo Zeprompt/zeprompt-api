@@ -139,7 +139,7 @@ class AuthService {
    */
   _buildResetUrl(email, token) {
     const baseUrl = process.env.FRONTEND_URL || "http://localhost:3005";
-    return `${baseUrl}/api/auth/verify-password-reset-token?token=${token}&email=${encodeURIComponent(
+    return `${baseUrl}/auth/reset-password?token=${token}&email=${encodeURIComponent(
       email
     )}`;
   }
